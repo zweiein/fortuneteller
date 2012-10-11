@@ -1,0 +1,2 @@
+2012-10-11 23:45:14,329 INFO main fortuneteller (Main.scala:31) - Ready to collect data from remote indicator.
+2012-10-11 23:45:14,466 INFO main fortuneteller (Main.scala:40) - Waiting for connections on port 5128
