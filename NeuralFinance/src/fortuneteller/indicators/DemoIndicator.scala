@@ -25,7 +25,8 @@ class DemoIndicator( theMethod:MLRegression,  thePath:java.io.File) extends Basi
 		var rowsDownloaded:Int=0
 		requestData("CLOSE[1]");
 		requestData("SMA(10)["+Config.INPUT_WINDOW+"]");
-		requestData("SMA(25)["+Config.INPUT_WINDOW+"]");
+		requestData("AaLaguerreMA(70)["+Config.INPUT_WINDOW+"]");
+		//requestData("AaLaguerreMA(70)["+Config.INPUT_WINDOW+"]");
 		val fieldDifference = new NormalizedField(NormalizationAction.Normalize,"diff",Config.DIFF_RANGE,-Config.DIFF_RANGE,1,-1);
 		val fieldOutcome = new NormalizedField(NormalizationAction.Normalize,"out",Config.PIP_RANGE,-Config.PIP_RANGE,1,-1);
 	/**
