@@ -55,10 +55,61 @@ object Main extends IndicatorConnectionListener {
     server.start();
   }
 
+  /**
+   * Perform the training option.
+   */
+  def train(): Unit = {
+    // first, create the machine learning method
+    val methodFactory = new MLMethodFactory();
+    var method = methodFactory.create(Config.METHOD_TYPE, Config.METHOD_ARCHITECTURE, Config.INPUT_WINDOW, 1);
+
+    // second, create the data set	
+    val filename = new File(filePath, Config.FILENAME_TRAIN);
+    val dataSet = EncogUtility.loadEGB2Memory(filename);
+
+    // third, create the trainer
+    val trainFactory = new MLTrainFactory();
+    val train = trainFactory.create(method, dataSet, Config.TRAIN_TYPE, Config.TRAIN_PARAMS);
+    // reset if improve is less than 1% over 5 cycles
+    if (method.isInstanceOf[MLResettable] && !(train.isInstanceOf[ManhattanPropagation])) {
+      train.addStrategy(new RequiredImprovementStrategy(500));
+    }
+
+    // fourth, train and evaluate.
+    EncogUtility.trainToError(train, Config.TARGET_ERROR);
+    
+   // EncogUtility.tr
+    method = train.getMethod();
+    EncogDirectoryPersistence.saveObject(new File(filePath, Config.METHOD_NAME), method);
+
+    // finally, write out what we did
+    cat.info("Machine Learning Type: " + Config.METHOD_TYPE);
+    cat.info("Machine Learning Architecture: " + Config.METHOD_ARCHITECTURE);
+
+    cat.info("Training Method: " + Config.TRAIN_TYPE);
+    cat.info("Training Args: " + Config.TRAIN_PARAMS);
+  }
+
+  /**
+   * Perform the generate option.
+   */
+  def generate(): Unit = {
+    cat.info("Generating training data... please wait...");
+    val gen = new Generator(filePath);
+    gen.generate();
+    cat.info("Training data has been generated.");
+  }
   def main(args: Array[String]): Unit = {
-	PropertyConfigurator.configure("./log.properties");	  
-    filePath = new File(args(0))
-    run(true)
+    PropertyConfigurator.configure("./log.properties");
+    filePath = new File(args(1))
+    if (args(0) == "collect")
+      run(true)
+    if (args(0) == "generate")
+      generate()
+    if (args(0) == "train")
+      train()
+    if (args(0) == "run")
+      run(false)
   }
 
   override def notifyConnections(link: IndicatorLink, hasOpened: Boolean): Unit = {

@@ -5,15 +5,15 @@ object Config {
 	/**
 	 * The maximum range (either positive or negative) that the difference between the fast and slow will be normalized to.
 	 */
-	val DIFF_RANGE = 50;
+	val DIFF_RANGE = 100;
 	/**
 	 * The maximum range (either positive or negative) that the pip profit(or loss) will be in.
 	 */
-	val PIP_RANGE = 35;
+	val PIP_RANGE = 100;
 	/**
 	 * The size of a single PIP (i.e. 0.0001 for EURUSD)
 	 */
-	val PIP_SIZE = 0.0001;
+	val PIP_SIZE = 0.01;
 	
 	/**
 	 * The size of the input window.  This is the number of previous bars to consider.
@@ -23,7 +23,7 @@ object Config {
 	/**
 	 * The number of bars to look forward to determine a max profit, or loss.
 	 */
-	val PREDICT_WINDOW = 10;
+	val PREDICT_WINDOW = 5;
 	
 	/**
 	 * The targeted error.  Once the training error reaches this value, training will stop.
