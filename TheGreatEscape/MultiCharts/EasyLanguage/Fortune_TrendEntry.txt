@@ -1,0 +1,386 @@
+
+Inputs:
+	CloseAtEndOfDay(0), BreakEvenProfitTrigger(0);
+Variables:
+	d2(0);
+	d2=currentbar data2;
+
+
+ // ************  Keltner Filter ************
+    inputs: Keltner_FilterDef(8888888888),En_KeltnerFilter(1),Keltner_Length(12), Keltner_AtrMultiplier(1.4), Keltner_ApplyData1(0);
+    variables: Keltner_DirectionValue(0), Keltner_ValueUp(0),Keltner_ValueDown(0);
+		if En_KeltnerFilter=1 then begin
+		Keltner_ValueUp=iff((Keltner_ApplyData1=1),Fortune_Keltner(1,Keltner_Length,Keltner_AtrMultiplier)data1,Fortune_Keltner(1,Keltner_Length,Keltner_AtrMultiplier)data2);
+		Keltner_ValueDown=iff((Keltner_ApplyData1=1),Fortune_Keltner(2,Keltner_Length,Keltner_AtrMultiplier)data1,Fortune_Keltner(2,Keltner_Length,Keltner_AtrMultiplier)data2);
+		if (c data2>Keltner_ValueUp)then Keltner_DirectionValue= 1 else if (c data2<Keltner_ValueDown) then Keltner_DirectionValue=-1;	
+	end;
+
+
+
+ // ************  Bollinger Filter ************
+    inputs: BollingerBand_FilterDef(8888888888),En_BollingerBandFilter(0),BollingerFilter_Length(20), BollingerFilter_StdDev(2), BollingerFilter_ApplyData1(0);
+    variables: BollingerFilter_DirectionValue(0), BollingerFilter_ValueUp(0),BollingerFilter_ValueDown(0);
+		if En_BollingerBandFilter=1 then begin
+		BollingerFilter_ValueUp=iff((BollingerFilter_ApplyData1=1),Fortune_Bollinger(1,BollingerFilter_Length,BollingerFilter_StdDev)data1,Fortune_Bollinger(1,BollingerFilter_Length,BollingerFilter_StdDev)data2);
+		BollingerFilter_ValueDown=iff((BollingerFilter_ApplyData1=1),Fortune_Bollinger(2,BollingerFilter_Length,BollingerFilter_StdDev)data1,Fortune_Bollinger(2,BollingerFilter_Length,BollingerFilter_StdDev)data2);
+		if (c data2>BollingerFilter_ValueUp)then BollingerFilter_DirectionValue= 1 else if (c data2<BollingerFilter_ValueDown) then BollingerFilter_DirectionValue=-1;	
+	end;
+
+
+
+ // ************  BollingerKeltner Filter ************
+    inputs: BollingerKeltner_FilterDef(8888888888),En_BollingerKeltner(0),BollingerKeltner_KeltLength(12), BollingerKeltner_BollLength(20), BollingerKeltner_StdDev(2), BollingerKeltner_AtrMultiplier(1.4);
+    variables: BollingerKeltner_DirectionValue(0), BollingerKeltner_Boll_ValueUp(0), BollingerKeltner_Boll_ValueDOwn(0),BollingerKeltner_Kelt_ValueUp(0), BollingerKeltner_Kelt_ValueDOwn(0);;
+	if En_BollingerKeltner=1 then begin
+		BollingerKeltner_Kelt_ValueUp=Fortune_Keltner(1,BollingerKeltner_KeltLength,BollingerKeltner_AtrMultiplier)data2;
+		BollingerKeltner_Kelt_ValueDOwn=Fortune_Keltner(2,BollingerKeltner_KeltLength,BollingerKeltner_AtrMultiplier)data2;	
+		BollingerKeltner_Boll_ValueUp=Fortune_Bollinger(1,BollingerKeltner_BollLength,BollingerKeltner_StdDev)data2;
+		BollingerKeltner_Boll_ValueDOwn=Fortune_Bollinger(2,BollingerKeltner_BollLength,BollingerKeltner_StdDev)data2;
+		if (c data2>BollingerKeltner_Kelt_ValueUp and BollingerKeltner_Boll_ValueUp>BollingerKeltner_Kelt_ValueUp)then BollingerKeltner_DirectionValue= 1 
+		else if (c data2<BollingerKeltner_Boll_ValueDOwn and BollingerKeltner_Boll_ValueDOwn<BollingerKeltner_Boll_ValueDOwn) then BollingerKeltner_DirectionValue=-1;	
+	end;
+	
+	
+ // ************  MAMA Filter ************
+    inputs: MAMA_FilterDef(8888888888),En_MamaFilter(0),Mama_Speed(.8), Mama_FastLimit(.5), Mama_SlowLimit(.05),Mama_ApplyData1(0);
+    variables: Mama_DirectionValue(0), Mama_Value(0);
+		if En_MamaFilter=1 then begin
+		Mama_Value=iff((Mama_ApplyData1=1),MAMA((H+L)/2, Mama_Speed, Mama_FastLimit, Mama_SlowLimit)data1,MAMA((H+L)/2, Mama_Speed, Mama_FastLimit, Mama_SlowLimit)data2);
+		if (c data2>Mama_Value)then Mama_DirectionValue= 1 else Mama_DirectionValue=-1;	
+	end;
+
+ // ************  KAMA Filter ************
+    inputs: KAMA_FilterDef(8888888888),En_KamaFilter(0),Kama_Periods(10), Kama_Fast(2), Kama_Slow(30),Kama_ApplyData1(0);
+    variables: Kama_DirectionValue(0), Kama_Value(0);
+	if En_KamaFilter=1 then begin
+		Kama_Value= iff((Kama_ApplyData1=1),KAMA((H+L)/2, Kama_Periods, Kama_Fast, Kama_Slow)data1,KAMA((H+L)/2, Kama_Periods, Kama_Fast, Kama_Slow)data2);
+		if (c data2>Kama_Value)then Kama_DirectionValue= 1 else Kama_DirectionValue=-1;	
+	end;
+
+ // ************  RENKO Filter ************
+    inputs: RENKO_FilterDef(8888888888),En_RenkoFilter(0),Renko_Periods(2),Renko_ApplyData1(0),Renko_MinBodyRatio(0.6);
+    variables: Renko_DirectionValue(666);
+	if En_RenkoFilter=1 then begin
+		Renko_DirectionValue=iff((Renko_ApplyData1=1),Fortune_RenkoDirection(Renko_Periods,Renko_MinBodyRatio)data1,Fortune_RenkoDirection(Renko_Periods,Renko_MinBodyRatio) data2);	
+	end;
+
+ // ************  FRAMA Filter ************
+    inputs: FRAMA_FilterDef(8888888888),En_FramaFilter(0),Frama_Periods(20),Frama_ApplyData1(0);
+    variables: Frama_DirectionValue(0), Frama_Value(0);
+	if En_FramaFilter=1 then begin
+		Frama_Value= iff((Frama_ApplyData1=1),FRAMA((H+L)/2, Frama_Periods) data1,FRAMA((H+L)/2, Frama_Periods) data2);
+		if (c data2>Frama_Value)then Frama_DirectionValue= 1 else Frama_DirectionValue=-1;	
+	end;	
+
+ // ************  VIDYA Filter ************
+    inputs: VIDYA_FilterDef(8888888888),En_VIDYAFilter(0),VIDYA_LengthM(30), VIDYA_LengthN(9),VIDYA_ApplyData1(0);
+    variables: VIDYA_DirectionValue(0), VIDYA_Value(0);
+	if En_VIDYAFilter=1 then begin
+		VIDYA_Value= iff((VIDYA_ApplyData1=1),VIDYA(VIDYA_LengthM, VIDYA_LengthN) data1,VIDYA(VIDYA_LengthM, VIDYA_LengthN) data2);
+		if (c data2>VIDYA_Value)then VIDYA_DirectionValue= 1 else VIDYA_DirectionValue=-1;	
+	end;	
+ // ************  EMA  Filter ************
+    inputs: EMA_FilterDef(8888888888),En_EmaFilter(0),Ema_FastLen(15), Ema_SlowLen(20);
+    variables: Ema_DirectionValue(0), Ema_Fast(0), Ema_Slow(0);
+	if En_EmaFilter=1 then begin
+		Ema_Fast=XAverage(O data2,Ema_FastLen);
+		Ema_Slow=XAverage(O data2,Ema_SlowLen);
+		if Ema_Fast>Ema_Slow then Ema_DirectionValue=1 else Ema_DirectionValue=-1;
+
+
+	end;
+ // ************  Awesome  Filter ************
+    inputs: Awesome_FilterDef(8888888888),En_AwesomeFilter(0),Awesome_Turnaround(1);
+    variables: Awesome_DirectionValue(0), Awesome_Value(0);
+	if En_AwesomeFilter=1 then begin
+		Awesome_Value=AwesomeValue() data2;
+		if Awesome_Turnaround=1 then begin
+			if Awesome_Value[2]>=Awesome_Value[1] and Awesome_Value>Awesome_Value[1] then
+				Awesome_DirectionValue=1
+			else if  Awesome_Value[2]<=Awesome_Value[1] and Awesome_Value<Awesome_Value[1] then
+				Awesome_DirectionValue=-1;
+		end
+		else begin
+			if 0>=Awesome_Value[1] and Awesome_Value>0 then
+				Awesome_DirectionValue=1
+			else if Awesome_Value[1]>=0 and Awesome_Value<0 then
+				Awesome_DirectionValue=-1;
+		end;
+	end;
+
+ // ************  Ehlers  Filter ************
+    inputs: Ehlers_FilterDef(8888888888),En_EhlersFilter(0),Ehlers_FastLen(5),Ehlers_SlowLen(30),Ehlers_ApplyData1(0);
+    variables: Ehlers_DirectionValue(0), Ehlers_Fast(0), Ehlers_Slow(0);
+	if En_EhlersFilter=1 then begin
+		Ehlers_Fast=iff((Ehlers_ApplyData1=1),EhlersFilter(O, Ehlers_FastLen)data1,EhlersFilter(O, Ehlers_FastLen)data2);
+		Ehlers_Slow=iff((Ehlers_ApplyData1=1),EhlersFilter(O, Ehlers_SlowLen)data1,EhlersFilter(O, Ehlers_SlowLen)data2);
+		if Ehlers_Fast>Ehlers_Slow then Ehlers_DirectionValue=1 else Ehlers_DirectionValue=-1;			
+	end;
+
+ 
+ // ************  HMA Filter ************
+    inputs: HMA_FilterDef(8888888888),En_HmaFilter(0),Hma_FastLen(5), Hma_SlowLen(30),Hma_SimpleHmaTurn(0),Hma_SimpleHmaTurnSmoothing(1),Hma_ApplyData1(0);
+    variables: Hma_DirectionValue(0), Hma_Fast(0), Hma_Slow(0), Hma_Smoothed(0);
+		if En_HmaFilter=1 then begin
+		Hma_Fast=iff((Hma_ApplyData1=1),jtHMA(O, Hma_FastLen)data1,jtHMA(O, Hma_FastLen)data2);
+		Hma_Slow=iff((Hma_ApplyData1=1),jtHMA(O, Hma_SlowLen)data1,jtHMA(O, Hma_SlowLen)data2);
+		if Hma_SimpleHmaTurn=1 then begin
+			Hma_Smoothed= AverageFC( Hma_Fast, Hma_SimpleHmaTurnSmoothing ) ;
+			if Hma_Smoothed>Hma_Smoothed[1] then Hma_DirectionValue=1 else Hma_DirectionValue=-1;
+		end
+		else begin
+			if Hma_Fast>Hma_Slow then Hma_DirectionValue=1 else Hma_DirectionValue=-1;
+			
+		end;	
+	end;
+
+ // ************  T3 Filter ************
+    inputs: T3_FilterDef(8888888888),En_T3Filter(0),T3_LengthFast(15),T3_LengthSlow(15), T3_vFactor(.7),T3_SimpleT3Turn(0),T3_ApplyData1(0);
+    variables: T3_DirectionValue(0), T3_Fast(0), T3_Slow(0);
+	if En_T3Filter=1 then begin
+		T3_Fast=iff((T3_ApplyData1=1),GD (GD ( GD(O, T3_LengthFast, T3_vFactor), T3_LengthFast, T3_vFactor), T3_LengthFast, T3_vFactor) data1,GD (GD ( GD(O, T3_LengthFast, T3_vFactor), T3_LengthFast, T3_vFactor), T3_LengthFast, T3_vFactor) data2);
+		T3_Slow=iff((T3_ApplyData1=1),GD (GD ( GD(O, T3_LengthSlow, T3_vFactor), T3_LengthSlow, T3_vFactor), T3_LengthSlow, T3_vFactor) data1,GD (GD ( GD(O, T3_LengthSlow, T3_vFactor), T3_LengthSlow, T3_vFactor), T3_LengthSlow, T3_vFactor) data2);
+		if T3_SimpleT3Turn=1 then begin
+			
+			if T3_Fast>T3_Fast[1] then T3_DirectionValue=1 else T3_DirectionValue=-1;
+		end
+		else begin
+			if T3_Fast>T3_Slow then T3_DirectionValue=1 else T3_DirectionValue=-1;
+			
+		end;	
+	end;
+
+ // ************  Smoothed ADAP Mov Avg Filter ************
+    inputs: SmoothedAdap_FilterDef(8888888888),En_SmoothedAdapFilter(0),SmoothedAdap_EffRatioLength(10), SmoothedAdap_FastAvgLength(2), SmoothedAdap_SlowAvgLength(30),SmoothedAdap_SmoothLength(4),SmoothedAdap_ApplyData1(0);
+    variables: SmoothedAdap_DirectionValue(0), SmoothedAdap_Value(0);
+		if En_SmoothedAdapFilter=1 then begin
+		SmoothedAdap_Value=iff((SmoothedAdap_ApplyData1=1),SmoothedAdapMA( (c+o)/2, SmoothedAdap_EffRatioLength, SmoothedAdap_FastAvgLength, SmoothedAdap_SlowAvgLength,SmoothedAdap_SmoothLength ) data1,SmoothedAdapMA( (c+o)/2, SmoothedAdap_EffRatioLength, SmoothedAdap_FastAvgLength, SmoothedAdap_SlowAvgLength,SmoothedAdap_SmoothLength ) data2);
+		if (SmoothedAdap_Value>SmoothedAdap_Value[1])then SmoothedAdap_DirectionValue= 1 else SmoothedAdap_DirectionValue=-1;	
+	end;
+ // ************  Smoothed ADAP Mov Avg Filter ************
+    inputs: SmoothedAdapCross_FilterDef(8888888888),En_SmoothedAdapCrosspFilter(0),SmoothedAdapCross_EffRatioLength(10), SmoothedAdapCross_FastAvgLength(2), SmoothedAdapCross_SlowAvgLength(30),SmoothedAdapCross_SmoothLength(4),SmoothedAdapCross_ApplyData1(0);
+    variables: SmoothedAdapCross_DirectionValue(0), SmoothedAdapCross_Value(0),SmoothedAdapCross_ValueFast(0),SmoothedAdapCross_ValueSlow(0);
+		if En_SmoothedAdapFilter=1 then begin
+		SmoothedAdapCross_ValueFast=iff((SmoothedAdapCross_ApplyData1=1),SmoothedAdapMA( (c+o)/2, SmoothedAdapCross_EffRatioLength, SmoothedAdapCross_FastAvgLength, SmoothedAdapCross_SlowAvgLength,SmoothedAdapCross_SmoothLength ) data1,SmoothedAdapMA( (c+o)/2, SmoothedAdapCross_EffRatioLength, SmoothedAdapCross_FastAvgLength, SmoothedAdapCross_SlowAvgLength,SmoothedAdapCross_SmoothLength ) data2);
+		SmoothedAdapCross_ValueSlow=iff((SmoothedAdapCross_ApplyData1=1),SmoothedAdapMA( (c+o)/2, SmoothedAdapCross_EffRatioLength*1.5, SmoothedAdapCross_FastAvgLength*1.5, SmoothedAdapCross_SlowAvgLength*1.5,SmoothedAdapCross_SmoothLength ) data1,SmoothedAdapMA( (c+o)/2, SmoothedAdapCross_EffRatioLength*1.5, SmoothedAdapCross_FastAvgLength*1.5, SmoothedAdapCross_SlowAvgLength*1.5,SmoothedAdapCross_SmoothLength ) data2);
+
+		if (SmoothedAdapCross_ValueFast>SmoothedAdapCross_ValueSlow)then SmoothedAdapCross_DirectionValue= 1 else SmoothedAdapCross_DirectionValue=-1;	
+	end;
+	
+	
+	//************  Paraboilic Filter ************
+    inputs: Parabolic_FilterDef(8888888888),En_ParabolicFilter(0),Parabolic_AfStep(0.0004), Parabolic_AfLimit(0.4),Parabolic_ApplyData1(0);
+    variables: Parabolic_DirectionValue(0), Parabolic_Value(0);
+	if En_ParabolicFilter=1 then begin
+		Parabolic_Value=iff((Parabolic_ApplyData1=1),Fortune_ParabolicValue( Parabolic_AfStep,Parabolic_AfLimit ) data1,Fortune_ParabolicValue( Parabolic_AfStep,Parabolic_AfLimit ) data2);
+		if (Parabolic_Value>C )then Parabolic_DirectionValue= -1 else Parabolic_DirectionValue=1;	
+	end;
+
+
+ // ************  Ichi Moku Filter ************
+    inputs: IchiMoku_FilterDef(8888888888),En_IchiMokuFilter(0),IchiMoku_Standard(26), IchiMoku_Turning(9), IchiMoku_Delayed(52),IchiMoku_ApplyData1(0);
+    variables: IchiMoku_DirectionValue(0), IchiMoku_StdLine(0),IchiMoku_TurnLine(0),IchiMoku_Span1(0),IchiMoku_Span2(0);
+	if En_IchiMokuFilter=1 then begin
+		IchiMoku_StdLine=iff((IchiMoku_ApplyData1=1),Fortune_IchiMoku(1,IchiMoku_Standard,IchiMoku_Turning,IchiMoku_Delayed) data1,Fortune_IchiMoku(1,IchiMoku_Standard,IchiMoku_Turning,IchiMoku_Delayed) data2);
+		IchiMoku_TurnLine=iff((IchiMoku_ApplyData1=1),Fortune_IchiMoku(2,IchiMoku_Standard,IchiMoku_Turning,IchiMoku_Delayed) data1,Fortune_IchiMoku(2,IchiMoku_Standard,IchiMoku_Turning,IchiMoku_Delayed) data2);
+		IchiMoku_Span1=iff((IchiMoku_ApplyData1=1),Fortune_IchiMoku(3,IchiMoku_Standard,IchiMoku_Turning,IchiMoku_Delayed) data1,Fortune_IchiMoku(3,IchiMoku_Standard,IchiMoku_Turning,IchiMoku_Delayed) data2);
+		IchiMoku_Span2=iff((IchiMoku_ApplyData1=1),Fortune_IchiMoku(4,IchiMoku_Standard,IchiMoku_Turning,IchiMoku_Delayed) data1,Fortune_IchiMoku(4,IchiMoku_Standard,IchiMoku_Turning,IchiMoku_Delayed) data2);
+		if (IchiMoku_Span1>IchiMoku_Span2 and C>IchiMoku_TurnLine and C[2]<IchiMoku_TurnLine)then IchiMoku_DirectionValue= 1 
+		else if (IchiMoku_Span1<IchiMoku_Span2 and C<IchiMoku_TurnLine and C[2]>IchiMoku_TurnLine)then IchiMoku_DirectionValue=-1;	
+	end;
+	
+ // ************  Stochastics KDJ Filter ************
+    inputs: StochKDJ_FilterDef(8888888888),En_StochKDJFilter(0),StochKDJ_PeriodD(7), StochKDJ_PeriodK(14), StochKDJ_Smooth(3),StochKDJ_ApplyData1(0);
+    variables: StochKDJ_DirectionValue(0), StochKDJ_JVal(0), StochKDJ_OverBought(90), StochKDJ_OverSold(10);
+	if En_StochKDJFilter=1 then begin
+		StochKDJ_JVal=iff((StochKDJ_ApplyData1=1),Fortune_StochasticsKDJ(StochKDJ_PeriodD,StochKDJ_PeriodK,StochKDJ_Smooth)data1,Fortune_StochasticsKDJ(StochKDJ_PeriodD,StochKDJ_PeriodK,StochKDJ_Smooth)data2);
+		if StochKDJ_JVal>StochKDJ_OverBought then StochKDJ_DirectionValue=-1 else if StochKDJ_JVal<StochKDJ_OverSold then StochKDJ_DirectionValue=1;	
+	end;
+
+ // ************  Adaptive Renko Filter ************
+    inputs: AdaptiveRenko_FilterDef(8888888888),En_AdaptiveRenkoFilter(0),AdaptiveRenko_K(2), AdaptiveRenko_Smooth(12),AdaptiveRenko_ApplyData1(0);
+    variables: AdaptiveRenko_DirectionValue(0), AdaptiveRenko_UP(0), AdaptiveRenko_DN(0);
+	if En_AdaptiveRenkoFilter=1 then begin
+		AdaptiveRenko_UP=iff((AdaptiveRenko_ApplyData1=1),Fortune_AdaptiveRenko(1,AdaptiveRenko_K,AdaptiveRenko_Smooth) data1,Fortune_AdaptiveRenko(1,AdaptiveRenko_K,AdaptiveRenko_Smooth) data2);
+		AdaptiveRenko_DN=iff((AdaptiveRenko_ApplyData1=1),Fortune_AdaptiveRenko(2,AdaptiveRenko_K,AdaptiveRenko_Smooth) data1,Fortune_AdaptiveRenko(2,AdaptiveRenko_K,AdaptiveRenko_Smooth) data2);
+		if (l data2>AdaptiveRenko_UP and c data2>o data2)then AdaptiveRenko_DirectionValue= 1;
+		if (h data2<AdaptiveRenko_DN and c data2<o data2)then AdaptiveRenko_DirectionValue= -1;	
+	end;	
+
+
+ // ************  QQE Filter ************
+    inputs: QQE_FilterDef(8888888888),En_QqeFilter(0),Qqe_RsiLen(14), Qqe_SF(8), Qqe_Limit(10), Qqe_StrictlyRising(true),Qqe_ApplyData1(0);
+    variables: Qqe_DirectionValue(0), Qqe_Fast(0), Qqe_Slow(0);
+	if En_QqeFilter=1 then begin
+		Qqe_Fast=iff((Qqe_ApplyData1=1),QQE_MF(C,Qqe_RsiLen,Qqe_SF, 1) data1,QQE_MF(C,Qqe_RsiLen,Qqe_SF, 1) data2);
+		Qqe_Slow=iff((Qqe_ApplyData1=1),QQE_MF(C,Qqe_RsiLen,Qqe_SF, 0) data1,QQE_MF(C,Qqe_RsiLen,Qqe_SF, 0) data2);	
+		if Qqe_Fast>(50 + Qqe_Limit) and Qqe_Fast>Qqe_Slow and (Qqe_StrictlyRising=false or  Qqe_Fast>Qqe_Fast[1]) then Qqe_DirectionValue=1;
+		if Qqe_Fast<(50 - Qqe_Limit) and Qqe_Fast<Qqe_Slow and (Qqe_StrictlyRising=false or  Qqe_Fast<Qqe_Fast[1]) then Qqe_DirectionValue=-1;
+	end;
+
+
+ // ************  Bollinger Filter ************
+      inputs: Bollinger_FilterDef(8888888888),En_BollingerFilter(0),Bollinger_Periods(20),Bollinger_Ema(5), Bollinger_MinRatio(1.03), Bollinger_StrictlyRising(1);
+      variables: VolatBollinger_Value(true), Bollinger_Value(0), BollingerEma_Value(0);
+      if En_BollingerFilter = 1 then begin
+		Bollinger_Value=VollatilityBandWidth(1,Bollinger_Periods,Bollinger_Ema) data2;
+		BollingerEma_Value=VollatilityBandWidth(2,Bollinger_Periods,Bollinger_Ema) data2;
+		if Bollinger_Value>(BollingerEma_Value*Bollinger_MinRatio) and (Bollinger_StrictlyRising=0  or Bollinger_Value>Bollinger_Value[1]) then VolatBollinger_Value=True
+		else VolatBollinger_Value=false;
+      end;
+
+ // ************  Fractal Index Filter ************
+      inputs: FractalIndex_FilterDef(8888888888),En_FractalIndexFilter(0),FractalsIndex_Length(20),FractalsIndex_SignalLength(5), FractalsIndex_MinVariation(0.05);
+      variables: FractalIndex_Value(true), FractalIndex(0), FractalIndex_Signal(0);
+      if En_FractalIndexFilter= 1 then begin
+		if (CurrentBar > FractalsIndex_Length) then begin
+			FractalIndex= FracDimIndex(FractalsIndex_Length)data2;
+			FractalIndex_Signal	= HMA(FractalIndex, FractalsIndex_SignalLength)data2;
+			if FractalIndex_Signal>(1.5 + FractalsIndex_MinVariation) or FractalIndex_Signal<(1.5 + FractalsIndex_MinVariation) then
+				FractalIndex_Value=true
+			else
+				FractalIndex_Value=false;
+		end;	
+      end;
+
+
+ // ************  Adx Filter ************
+      inputs: Adx_FilterDef(8888888888),En_AdxFilter(0),Adx_Periods(14),Adx_Smoothing(5), Adx_LowLevel(15);
+      variables: Adx_Value(true), Adx_IndicatorsValue(0);
+      if En_AdxFilter = 1 then begin
+      		Adx_IndicatorsValue=SmoothedAdx(Adx_Periods, Adx_Smoothing) data2;	
+      		if Adx_IndicatorsValue>Adx_Periods and Adx_IndicatorsValue>Adx_IndicatorsValue[1] then
+      			Adx_Value=True
+      		else
+      			Adx_Value=false;
+      end;
+      
+      
+ // ************  AdxVma Filter ************
+      inputs: AdxVma_FilterDef(8888888888),En_AdxVmaFilter(0),Adx_VmaPeriods(14);
+      variables: AdxVma_Value(true), AdxVma_IndicatorsValue(0);
+      if En_AdxVmaFilter = 1 then begin
+      		AdxVma_IndicatorsValue=ADXVMA(C,Adx_VmaPeriods) data2;	
+      		if  AdxVma_IndicatorsValue<>AdxVma_IndicatorsValue[1] then
+      			AdxVma_Value=True
+      		else
+      			AdxVma_Value=false;
+      end;
+      
+
+      
+ // ************  TimeOfDay Filter ************
+      inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1545),TimeOfDay_ExclHoursFrom(1550),TimeOfDay_ExclHoursTo(1710);
+      variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+      if En_TimeOfDayFilter= 1 then begin	
+      		if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+      			TimeOfDay_TradingAllowed=false
+      		else
+      			TimeOfDay_TradingAllowed=true;
+       		if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+      			TimeOfDay_ExitWindow=true
+      		else
+      			TimeOfDay_ExitWindow=false;
+      end;
+
+
+// ************  DayOfWeek Filter ************
+      inputs: DayOfWeek_FilterDef(8888888888),En_DayOfWeekFilter(0),DayOfWeek_ExcludeFriday(true);
+      variables: DayOfWeek_TradingAllowed(true);
+      if En_TimeOfDayFilter= 1 then begin	
+      		if (dayofweek(date) = 5 and DayOfWeek_ExcludeFriday) then
+      			DayOfWeek_TradingAllowed=false
+      		else
+      			DayOfWeek_TradingAllowed=true;
+      end;
+
+ // ************  Max Loss Pr Day Filter ************
+      inputs: MaxLossPerDay_FilterDef(8888888888),En_MaxLossPerDay(0),MaxLoss_Dollar(700);
+      variables: MaxLoss_Triggered(false),MaxLoss_TodayNet(0), MaxLoss_YesterdayNet(0);
+      if En_MaxLossPerDay= 1 then begin	
+			if date <> date[1] then begin
+				MaxLoss_YesterdayNet = NetProfit;
+			end;
+			if MarketPosition = 0 then begin
+				MaxLoss_TodayNet = NetProfit - MaxLoss_YesterdayNet;
+			end;
+			if -MaxLoss_Dollar > MaxLoss_TodayNet then
+				MaxLoss_Triggered=true
+			else
+				MaxLoss_Triggered=false;
+      end;
+
+
+// Volatility condition, either bull or bear
+condition1=VolatBollinger_Value and FractalIndex_Value;
+
+//BullCondition
+condition2=(Kama_DirectionValue=0 or Kama_DirectionValue=1) and
+		(Frama_DirectionValue=0 or Frama_DirectionValue=1) and
+		(Mama_DirectionValue=0 or Mama_DirectionValue=1) and
+		(VIDYA_DirectionValue=0 or VIDYA_DirectionValue=1) and
+		(Qqe_DirectionValue=0 or Qqe_DirectionValue=1) and 
+		(Renko_DirectionValue=666 or Renko_DirectionValue=1) and 
+		(Parabolic_DirectionValue=0 or Parabolic_DirectionValue=1) and 		
+		(IchiMoku_DirectionValue=0 or IchiMoku_DirectionValue=1) and 		
+		(BollingerFilter_DirectionValue=0 or BollingerFilter_DirectionValue=1) and 
+		(BollingerKeltner_DirectionValue=0 or BollingerKeltner_DirectionValue=1) and 
+		(SmoothedAdap_DirectionValue=0 or SmoothedAdap_DirectionValue=1) and 
+		(SmoothedAdapCross_DirectionValue=0 or SmoothedAdapCross_DirectionValue=1) and 
+		(StochKDJ_DirectionValue=0 or StochKDJ_DirectionValue=1) and
+		(AdaptiveRenko_DirectionValue=0 or AdaptiveRenko_DirectionValue=1) and
+		(T3_DirectionValue=0 or T3_DirectionValue=1) and 
+		(Keltner_DirectionValue=0 or Keltner_DirectionValue=1) and 
+		(Ema_DirectionValue=0 or Ema_DirectionValue=1) and 
+		(Awesome_DirectionValue=0 or Awesome_DirectionValue=1) and 
+		(Ehlers_DirectionValue=0 or Ehlers_DirectionValue=1) and 		
+		(Hma_DirectionValue=0 or Hma_DirectionValue=1);
+		
+//BearConditions
+condition3=(Kama_DirectionValue=0 or Kama_DirectionValue=-1) and
+		(Frama_DirectionValue=0 or Frama_DirectionValue=-1) and
+		(Mama_DirectionValue=0 or Mama_DirectionValue=-1) and
+		(VIDYA_DirectionValue=0 or VIDYA_DirectionValue=-1) and
+		(Qqe_DirectionValue=0 or Qqe_DirectionValue=-1) and 
+		(Renko_DirectionValue=666 or Renko_DirectionValue=-1) and 
+		(Parabolic_DirectionValue=0 or Parabolic_DirectionValue=-1) and 		
+		(IchiMoku_DirectionValue=0 or IchiMoku_DirectionValue=-1) and 
+		(BollingerFilter_DirectionValue=0 or BollingerFilter_DirectionValue=-1) and 
+		(BollingerKeltner_DirectionValue=0 or BollingerKeltner_DirectionValue=-1) and 
+		(SmoothedAdap_DirectionValue=0 or SmoothedAdap_DirectionValue=-1) and 
+		(StochKDJ_DirectionValue=0 or StochKDJ_DirectionValue=-1) and
+		(SmoothedAdapCross_DirectionValue=0 or SmoothedAdapCross_DirectionValue=-1) and 
+		(AdaptiveRenko_DirectionValue=0 or AdaptiveRenko_DirectionValue=-1) and 
+		(T3_DirectionValue=0 or T3_DirectionValue=-1) and 
+		(Keltner_DirectionValue=0 or Keltner_DirectionValue=-1) and 
+		(Ema_DirectionValue=0 or Ema_DirectionValue=-1) and 
+		(Awesome_DirectionValue=0 or Awesome_DirectionValue=-1) and 
+		(Ehlers_DirectionValue=0 or Ehlers_DirectionValue=-1) and 				
+		(Hma_DirectionValue=0 or Hma_DirectionValue=-1);
+
+// Condition to not enter multiple trades within the same bar in data2
+condition4=d2<>d2[1] ;//and (totaltrades=0 or barssinceentry>30);
+
+//Other conditions to enable trading. ADX, Time etc
+condition5= Adx_Value=true and AdxVma_Value=true and TimeOfDay_TradingAllowed=true  and DayOfWeek_TradingAllowed=true and MaxLoss_Triggered=false;
+
+if  condition1 and condition2 and condition4 and condition5 then begin 	
+	Buy("LE") next bar at market;
+end;
+if  condition1 and condition3 and condition4 and condition5 then begin
+	Sell short ("SE") next bar at market;
+end;
+
+
+if BreakEvenProfitTrigger>0 and TimeOfDay_TradingAllowed=true  and DayOfWeek_TradingAllowed=true then begin
+	SetStopShare ;
+	SetBreakeven( BreakEvenProfitTrigger ) ;
+end;
+
+if TimeOfDay_ExitWindow=true  and TimeOfDay_TradingAllowed=true and CloseAtEndOfDay=1  then  begin
+	if MarketPosition=1 then Sell ("LX EOD") next bar at market;
+	if MarketPosition=-1 then BuyToCover ("SX EOD") next bar at market;
+end;
+
+
+

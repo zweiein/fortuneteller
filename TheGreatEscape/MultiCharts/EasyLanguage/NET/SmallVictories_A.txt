@@ -1,0 +1,49 @@
+using System;
+using System.Drawing;
+using System.Linq;
+using PowerLanguage.Function;
+using ATCenterProxy.interop;
+
+namespace PowerLanguage.Strategy {
+	public class SmallVictories_A : SignalObject {
+		public SmallVictories_A(object _ctx):base(_ctx)
+		{
+	        AtrFactor = 0.6;
+            AtrLen = 20;	
+		
+		}
+		private IOrderPriced buy_order;
+		private IOrderPriced sell_order;
+		
+		protected override void Create() {
+			// create variable objects, function objects, order objects etc.
+			buy_order = OrderCreator.Limit(new SOrderParameters(Contracts.Default, EOrderAction.Buy));
+			sell_order = OrderCreator.Limit(new SOrderParameters(Contracts.Default, EOrderAction.SellShort));
+		}
+		
+        [Input]
+        public Double AtrFactor { get; set; }
+
+        [Input]
+        public int AtrLen { get; set; }
+		
+		protected override void StartCalc() {
+			// assign inputs 
+		}
+		protected override void CalcBar(){
+			// strategy logic 
+			var AtrValue = this.AverageTrueRange(AtrLen);
+			if (PublicFunctions.DoubleLessEquals(Bars.Open[0], Bars.Low[0] + AtrValue*AtrFactor) &&
+				PublicFunctions.DoubleLess(Bars.Open[0], Bars.Close[0]) && 
+				PublicFunctions.DoubleLessEquals(Bars.Open[1], Bars.Low[1] + AtrValue*AtrFactor))
+				buy_order.Send((Bars.Open[0]+Bars.Close[0])/2);
+				
+
+						
+			if (PublicFunctions.DoubleGreaterEquals(Bars.Open[0], Bars.High[0] - AtrValue*AtrFactor) &&
+				PublicFunctions.DoubleGreater(Bars.Open[0], Bars.Close[0]) && 
+				PublicFunctions.DoubleGreaterEquals(Bars.Open[1], Bars.High[1] - AtrValue*AtrFactor))
+				sell_order.Send((Bars.Open[0]+Bars.Close[0])/2);
+		}
+	}
+}

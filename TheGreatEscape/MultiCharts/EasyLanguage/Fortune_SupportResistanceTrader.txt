@@ -1,0 +1,75 @@
+inputs:
+	iEntryOffset(.01),
+	iStopOffset(.01),
+	iPrice( Close data2 ), 
+	iDecimals(2),
+	iPeriods(3);
+
+
+variables: 
+xShortStop(0),
+xShortEntry(0),
+xLongStop(0),
+xLongEntry(0),
+xLowestLow(0),
+xHighestHigh(0),
+xRange(0),
+xPosition(0),
+oExtremeVal( 0 ), 
+oExtremeBar( 0 ) ;
+
+variables: 
+barn(0),
+xBars( 0 ),
+xPeriods(05),
+xOldPeriods(0),
+
+Dynamic_R( 0 ), 
+Dynamic_S( 0 ),
+OldDynamic_R( 0 ), 
+OldDynamic_S( 0 ),
+PrevDynamic_R( 0 ), 
+PrevDynamic_S( 0 ) ;
+
+
+
+barn=barNumber data2;
+if barn>barn[1] then begin
+
+	
+	If Dynamic_R <> PrevDynamic_R
+		then OldDynamic_R = PrevDynamic_R;
+			
+	If Dynamic_S <> PrevDynamic_S 
+		then OldDynamic_S  = PrevDynamic_S ;
+		
+	OldDynamic_R = PrevDynamic_R ;
+	OldDynamic_S = PrevDynamic_S ;
+
+	PrevDynamic_R = Dynamic_R ;
+	PrevDynamic_S = Dynamic_S ;
+
+		
+	xBars = xBars + 1;
+	oExtremeVal = Extremes( L , iPeriods, -1, Dynamic_S , oExtremeBar ) data2; // lowest low
+	oExtremeVal = Extremes( H , iPeriods, 1, Dynamic_R , oExtremeBar ) data2; // highest high
+
+	If Dynamic_R <> H data2 and Dynamic_R < PrevDynamic_R
+		then if PrevDynamic_R <> 0
+			then Dynamic_R = PrevDynamic_R;
+		
+	If Dynamic_S <> L data2 and Dynamic_S > PrevDynamic_S 		
+		then if PrevDynamic_S <> 0
+			then Dynamic_S = PrevDynamic_S;
+
+	xShortStop		= Dynamic_R + iStopOffset ;
+	xLongStop		= Dynamic_S - iStopOffset ;
+
+
+	if Low[1] data2 = Dynamic_S[1]	and Close[1] data2> Low[1] data2
+		then Buy ("High buy") Next Bar at market;	
+	if High[1] data2 = Dynamic_R[1]	and Close[1] data2 < High[1] data2
+		then Sell Short ("Low sell") Next Bar at market;
+			
+	
+end;		

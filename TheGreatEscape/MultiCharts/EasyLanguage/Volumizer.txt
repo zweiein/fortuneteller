@@ -1,0 +1,35 @@
+inputs:
+	AvgLength( 50 ),
+	AlertPct( 50 ),
+	VolumeFactor( 2 ),
+	AClen( 34 ) ;
+
+variables:
+	var0( 0 ),
+	var1( 0 ),
+	var2( 0 ),
+	var3( 0 ) ;
+
+
+	var0 = Volume ;
+	var1 = AverageFC( Volume, AvgLength ) ;
+	
+	
+
+                    
+var2=Average((h+l)/2,5)-Average((h+l)/2,AClen);
+
+                                     
+var3=var2-Average(var2,5);
+	
+	if mp=1 and var3[2]>var3[1] and var3[1]>var3 then sell next bar at market;
+	if mp=-1 and var3[2]<var3[1] and var3[1]<var3 then buytocover next bar at market;
+	if mp=0 and (VolumeFactor*var0[1])<var0 and var0[1]>var1[1] then
+	begin
+		if var3[1]<var3 then sellshort next bar at market;
+		if var3[1]>var3 then buy next bar at market;
+	end;
+	
+	
+
+	

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="C:/Devroot/hq/Scala/NeuralFinance/lib/commons-cli-1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Devroot/hq/Scala/NeuralFinance/lib/commons-dbcp-1.2.2.jar"/>
+	<classpathentry kind="lib" path="C:/Devroot/hq/Scala/NeuralFinance/lib/commons-io-2.0.1.jar"/>
+	<classpathentry kind="lib" path="C:/Devroot/hq/Scala/NeuralFinance/lib/commons-logging-1.1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Devroot/hq/Scala/NeuralFinance/lib/commons-net-3.0.1.jar"/>
+	<classpathentry kind="lib" path="C:/Devroot/hq/Scala/NeuralFinance/lib/commons-pool-1.5.6.jar"/>
+	<classpathentry kind="lib" path="C:/Devroot/hq/Scala/NeuralFinance/lib/log4j-1.2.15.jar"/>
+	<classpathentry kind="lib" path="C:/Devroot/hq/Scala/NeuralFinance/lib/scala-library-2.9.2.jar"/>
+	<classpathentry kind="lib" path="C:/Devroot/hq/Scala/OseAdapter/lib/joda-convert-1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Devroot/hq/Scala/OseAdapter/lib/joda-time-2.1.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

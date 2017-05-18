@@ -1,0 +1,65 @@
+{== START OF HEADER ==========================================================================
+
+Function: _CE_Normalize_Units_vs_Volatility
+Date:     November 2012
+Platform: TradeStation v9.1
+
+DESCRIPTION:
+
+This function is used for market studies to normalize the number of units traded vs. 
+the volatility of the market. Volatility is based upon an Average True Range calculation.
+The lookback period and multiplicaation factor can be entered as inputs.
+
+Version: November 2012 - Initial revision.
+
+
+== END OF HEADER =============================================================================
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Copyright © 2012-2013. Capital Evolution, LLC. All Rights Reserved.
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+== DEFINE ALL INPUTS AND VARIABLES ==========================================================}
+
+inputs: {------------------------------------------------------------------------------------}     
+Account_Size$(numericsimple),
+Risk_Per_Trade$(numericsimple),
+RoundShares(TrueFalseSeries),
+Entry_Price(numericsimple),
+ATR_Lookback(numericsimple),
+ATR_Mult(numericsimple),
+Print_Results(TrueFalseSeries);
+
+Variables:
+symbolType(0),
+STOCK(2),
+MUTUALFUND(6),   
+ATR(0),
+vUnits(0);
+
+Once symbolType = Category;
+
+   ATR = AvgTrueRange(ATR_Lookback) * ATR_Mult * Bigpointvalue;
+   If ( ATR <> 0 ) Then vUnits = Intportion( Risk_Per_Trade$/ATR );
+   
+   If ( vUnits * Entry_Price > Account_Size$ ) Then
+      vUnits = Intportion( Account_Size$/Entry_Price );
+
+   If (( symbolType = STOCK ) Or ( symbolType = MUTUALFUND )) And ( RoundShares ) Then
+      vUnits = Intportion(vUnits / 100 ) * 100;
+   
+   If ( Print_Results ) Then
+         print(   "Date: " + EEDateToString( Date )+ ", " +
+                  "Time: " + EETimeToString( Time )+ ", " +
+                  "Risk: " + numtostr(Risk_Per_Trade$,2) + "  " +  
+                  "ATR: " + numtostr(ATR,2) + "  " + 
+                  "Units: " + numtostr(vUnits,2)
+                  );   
+            
+   _Normalize_Units_vs_Volatility = vUnits;
+
+ {== END OF MAIN PROGRAM =====================================================================
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Copyright © 2009-2013. Capital Evolution, LLC. All Rights Reserved.
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++} 

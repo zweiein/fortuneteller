@@ -1,0 +1,42 @@
+[IntrabarOrderGeneration = false]
+inputs: Length( 5 ), NumATRs( .75 ), SLength( 5 ), SNumATRs( .75 ) ;
+
+
+
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1645),TimeOfDay_ExclHoursFrom(1650),TimeOfDay_ExclHoursTo(1800);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+
+ // ************  Max Loss Pr Day Filter ************
+ inputs: MaxLossPerDay_FilterDef(8888888888),En_MaxLossPerDay(0),MaxLoss_Dollar(700);
+      variables: MaxLoss_Triggered(false),MaxLoss_TodayNet(0), MaxLoss_YesterdayNet(0);
+      if En_MaxLossPerDay= 1 then begin	
+	if date <> date[1] then begin
+		MaxLoss_YesterdayNet = NetProfit;
+	end;
+	//if MarketPosition = 0 then begin
+		MaxLoss_TodayNet = NetProfit - MaxLoss_YesterdayNet;
+	//end;
+	if -MaxLoss_Dollar > MaxLoss_TodayNet then
+		MaxLoss_Triggered=true
+	else
+		MaxLoss_Triggered=false;
+      end;
+
+Condition5= TimeOfDay_TradingAllowed and  MaxLoss_Triggered=false;
+
+if Condition5 then begin
+Buy ( "VltClsLE" ) next bar at Close + AvgTrueRange( Length ) * NumATRs stop ;
+Sell Short ( "VltClsSE" ) next bar at Close - AvgTrueRange( SLength ) * SNumATRs stop ;
+end;

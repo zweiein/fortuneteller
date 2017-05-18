@@ -1,0 +1,95 @@
+[IntrabarOrderGeneration = false]
+inputs: LPrice( Low data1), BuyLeftStrength( 2), BuyRightStrength( 2),HPrice( High data1), SellLeftStrength( 2), SellRightStrength( 2)  ;
+vars: barn(0),vShares (1);
+barn=BarNumber data1;
+
+
+inputs:  AfStep( 0.02 ), AfLimit( 0.2 ) ;
+variables:  var0( 0 ), var1( 0 ), var2( 0 ), var3( 0 ) ;
+
+Value1 = ParabolicSAR( AfStep, AfLimit, var0, var1, var2, var3 ) ;
+
+
+inputs: AtrMulti(5),
+AtrLookback(10),
+RegimeLookback(200),
+RiskPerTrade$(2000 {Dollars to risk per trade}),
+AccountSize$(10000 {Strating account size in dollars});
+
+vShares = _CE_Normalize_Units_vs_Volatiliti( AccountSize$, RiskPerTrade$, false, Close, AtrLookback, AtrMulti, false );
+If ( vShares < 1 ) Then vShares = 1;
+
+
+inputs: PositionBasis( false ), TicksSL( 35 ) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+if TicksSL>0 then begin
+	if PositionBasis then
+		SetStopPosition
+	else
+		SetStopShare ; 
+	SetStopLoss(TicksSL*TickValue) ;
+end;
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1545),TimeOfDay_ExclHoursFrom(1550),TimeOfDay_ExclHoursTo(1800);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+
+vars: htms(0), htmq(0);
+htmq=jtHMA(C,5);
+htms=jtHMA(C,12);
+
+if TimeOfDay_TradingAllowed and barn>barn[1] then begin
+
+input :	Enable_Pivot(0),Enable_Pivot2(0),Enable_Conseq(0),Enable_HMA(0),  Enable_CloseExtreme(1), Enable_InsideBar(0), Enable_Parabolic(0);
+	if Enable_Pivot=1 then
+		condition1 = PivotLowVS( 1, LPrice, BuyLeftStrength, BuyRightStrength, BuyRightStrength+ 1 ) data1 <> -1 ;
+	if Enable_Pivot2=1 then		
+		condition1 = PivotLowVS( 1, Close, BuyLeftStrength, BuyRightStrength, BuyRightStrength+ 1 ) <> -1 ;
+	if Enable_HMA=1 then		
+		condition1 = htmq crosses over  htms	;		
+	if Enable_CloseExtreme=1 then
+		condition1 = Close=High;
+	if Enable_InsideBar=1 then 
+		condition1 = High < High[1] and Low > Low[1] and Close > Open ;
+	if Enable_Conseq=1 then 
+		condition1 = Close[1] > Open[1] and Close > Open ;		
+	if Enable_Parabolic=1 then
+		condition1=var2 = -1 ;
+	if condition1 then 
+		Buy ( "Buy" ) vShares contracts next bar at market ;
+		
+	if Enable_Pivot=1 then
+		condition2 = PivotHighVS( 1, HPrice, SellLeftStrength, SellRightStrength, SellRightStrength+ 1 ) data1 <> -1 ;
+	if Enable_Pivot2=1 then
+		condition2 = PivotHighVS( 1, Close, SellLeftStrength, SellRightStrength, SellRightStrength+ 1 ) data1 <> -1 ;		
+	if Enable_HMA=1 then		
+		condition2 = htmq crosses under htms	;		
+	if Enable_CloseExtreme=1 then
+		condition2 = Close=Low;
+	if Enable_Conseq=1 then 
+		condition2 = Close[1] < Open[1] and Close < Open ;		
+	if Enable_InsideBar= 1 then
+		condition2 = High < High[1] and Low > Low[1] and Close < Open ;
+	if Enable_Parabolic=1 then
+		condition2=var2 = 1 ;					
+	if condition2 then
+		Sell Short ( "Sell" ) vShares contracts next bar at market ;
+
+
+end;
+
+
+{Profit Target Exit}
+If MarketPosition = 1 and C > EntryPrice and BarsSinceEntry >= 1 then Sell currentcontracts  contracts  this bar at close;
+If MarketPosition = -1 and C < EntryPrice and BarsSinceEntry >= 1 then Buy to cover currentcontracts   contracts  this bar at close;
+

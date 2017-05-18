@@ -1,0 +1,102 @@
+[IntrabarOrderGeneration = false]
+input: HmaLength(5);
+vars: barnbr(0);
+barnbr=BarNumber data1;
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_TradingFrom(0730),TimeOfDay_TradingUntil(0800);
+variables: TimeOfDay_TradingAllowed(true);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_TradingFrom and Time <=TimeOfDay_TradingUntil then
+	      TimeOfDay_TradingAllowed=true
+	      else
+	      TimeOfDay_TradingAllowed=false;
+end;
+
+
+// A test to only run logic on data1 bars
+if barnbr>barnbr[1] then begin
+
+variables:
+   MyTime(0),BarTime (0),PrevTime (0),
+   LastDuration(0),
+   MyCurrentBar(0);
+   
+	BarTime = Time of data1;
+	PrevTime = Time[1] of data1;
+ 
+   LastDuration = BarTimeInterval data1;//SecondsFromDateTime(ELTimeToDateTime(BarTime -PrevTime ));
+   
+if TimeOfDay_TradingAllowed then begin	
+	if marketposition>0 and HMA(C ,HmaLength)[0] data1<HMA(C ,HmaLength)[1]data1 then begin
+		Sell CurrentContracts contracts next bar at market;
+	
+	end;
+	if marketposition<0 and  HMA(C ,HmaLength)[0] data1>HMA(C ,HmaLength)[1]data1 then begin	
+		BuyToCover  CurrentContracts contracts next bar at market;
+	end;
+
+	
+	//Uptrend
+	if c[0]data1>o[0]data1 and c[1]data1>o[1]data1 then begin
+	
+		if CurrentContracts=0 or MarketPosition<0 then begin
+			Buy ( "Buy#1" ) next bar at market ;		
+		end
+		else	if MarketPosition>0 and CurrentContracts=1 then begin
+			Buy ( "Buy#2" ) next bar at market ;		
+		end	
+		else	if MarketPosition>0 and  CurrentContracts=2 then begin
+			Buy ( "Buy#3" ) next bar at market ;		
+		end	
+		else	if MarketPosition>0 and  CurrentContracts=3 then begin
+			Buy ( "Buy#4" ) next bar at market ;		
+		end;					
+	end;
+
+	//Downtrend
+	if c[0]data1<o[0]data1 and c[1]data1<o[1]data1 then begin
+	
+		if CurrentContracts=0 or MarketPosition>0 then begin
+			SellShort ( "Sell#1" ) next bar at market ;		
+		end
+		else	if MarketPosition<0 and CurrentContracts=1 then begin
+			SellShort ( "Sell#2" ) next bar at market ;		
+		end	
+		else	if MarketPosition<0 and CurrentContracts=2 then begin
+			SellShort ( "Sell#3" ) next bar at market ;		
+		end	
+		else	if MarketPosition<0 and CurrentContracts=3 then begin
+			SellShort ( "Sell#4" ) next bar at market ;		
+		end;	
+	
+	end;
+	input : TrailingType(1), TrailingOffset(2);
+	If MarketPosition=1 and C>O then begin
+		if TrailingType=1 then
+			Sell ("LX1") CurrentContracts contracts Next Bar at (L - (H-L)*TrailingOffset ) Stop
+		else 
+			Sell ("LX2") CurrentContracts contracts Next Bar at L - TrailingOffset points Stop;
+
+	end;
+		
+	If MarketPosition=-1 and C<O  then begin
+		if TrailingType=1 then
+			BuyToCover ("SX1") CurrentContracts contracts Next Bar at (H  + (H-L)*TrailingOffset  ) Stop
+		else
+			BuyToCover ("SX2") CurrentContracts contracts Next Bar at H  + TrailingOffset points Stop; 		
+		 	
+	end;
+end
+else begin
+
+	if marketposition>0 then begin
+		Sell("ExitL") CurrentContracts contracts next bar at market;
+	
+	end;
+	if marketposition<0 then begin	
+		BuyToCover("ExitS")  CurrentContracts contracts next bar at market;
+	end;
+end;
+
+end;

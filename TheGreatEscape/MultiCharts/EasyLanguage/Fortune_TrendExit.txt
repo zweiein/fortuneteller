@@ -1,0 +1,92 @@
+
+Inputs:
+	UseIndicatorExit(false);
+Variables:
+	d2(0);
+
+	d2=c data2;
+
+ // ************  MAMA Filter ************
+    inputs: MAMA_FilterDef(8888888888),En_MamaFilter(0),Mama_Speed(.8), Mama_FastLimit(.5), Mama_SlowLimit(.05);
+    variables: Mama_DirectionValue(666), Mama_Value(0);
+		if En_MamaFilter=1 then begin
+		Mama_Value=MAMA((H+L)/2, Mama_Speed, Mama_FastLimit, Mama_SlowLimit)data2;
+		if (c data2>Mama_Value)then Mama_DirectionValue= 1 else Mama_DirectionValue=-1;	
+	end;
+
+ // ************  KAMA Filter ************
+    inputs: KAMA_FilterDef(8888888888),En_KamaFilter(0),Kama_Periods(10), Kama_Fast(2), Kama_Slow(30);
+    variables: Kama_DirectionValue(666), Kama_Value(0);
+	if En_KamaFilter=1 then begin
+		Kama_Value= KAMA((H+L)/2, Kama_Periods, Kama_Fast, Kama_Slow)data2;
+		if (c data2>Kama_Value)then Kama_DirectionValue= 1 else Kama_DirectionValue=-1;	
+	end;
+
+ // ************  FRAMA Filter ************
+    inputs: FRAMA_FilterDef(8888888888),En_FramaFilter(0),Frama_Periods(20);
+    variables: Frama_DirectionValue(666), Frama_Value(0);
+	if En_KamaFilter=1 then begin
+		Frama_Value= FRAMA((H+L)/2, Frama_Periods) data2;
+		if (c data2>Frama_Value)then Frama_DirectionValue= 1 else Frama_DirectionValue=-1;	
+	end;	
+
+ // ************  HMA Filter ************
+    inputs: HMA_FilterDef(8888888888),En_HmaFilter(1),Hma_FastLen(14), Hma_SlowLen(8);
+    variables: Hma_DirectionValue(666), Hma_Fast(0), Hma_Slow(0);
+		if En_HmaFilter=1 then begin
+		Hma_Fast=jtHMA(C, Hma_FastLen)data2;
+		Hma_Slow=jtHMA(C, Hma_SlowLen)data2;
+		if Hma_Fast>Hma_Slow then Hma_DirectionValue=1 else Hma_DirectionValue=-1;	
+	end;
+
+
+ // ************  QQE Filter ************
+    inputs: QQE_FilterDef(8888888888),En_QqeFilter(0),Qqe_RsiLen(14), Qqe_SF(8), Qqe_Limit(10), Qqe_StrictlyRising(true);
+    variables: Qqe_DirectionValue(666), Qqe_Fast(0), Qqe_Slow(0);
+	if En_QqeFilter=1 then begin
+		Qqe_Fast=QQE_MF(C,Qqe_RsiLen,Qqe_SF, 1) data2;
+		Qqe_Slow=QQE_MF(C,Qqe_RsiLen,Qqe_SF, 0) data2;	
+		if Qqe_Fast>(50 + Qqe_Limit) and Qqe_Fast>Qqe_Slow and (Qqe_StrictlyRising=false or  Qqe_Fast>Qqe_Fast[1]) then Qqe_DirectionValue=1;
+		if Qqe_Fast<(50 - Qqe_Limit) and Qqe_Fast<Qqe_Slow and (Qqe_StrictlyRising=false or  Qqe_Fast<Qqe_Fast[1]) then Qqe_DirectionValue=-1;
+	end;
+
+ // ************  TimeOfDay Filter ************
+      inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(2145),TimeOfDay_ExclHoursFrom(2150),TimeOfDay_ExclHoursTo(2310);
+      variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+      if En_TimeOfDayFilter= 1 then begin	
+      		if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+      			TimeOfDay_TradingAllowed=false
+      		else
+      			TimeOfDay_TradingAllowed=true;
+       		if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+      			TimeOfDay_ExitWindow=true
+      		else
+      			TimeOfDay_ExitWindow=false;
+      end;
+
+//BullCondition
+condition2=(Kama_DirectionValue=666 and Kama_DirectionValue=1) or
+		(Frama_DirectionValue=666 and Frama_DirectionValue=1) or
+		(Mama_DirectionValue=666 and Mama_DirectionValue=1) or
+		(Qqe_DirectionValue=666 and Qqe_DirectionValue=1) or 
+		(Hma_DirectionValue=666 and Hma_DirectionValue=1);
+		
+//BearCondition
+condition3=(Kama_DirectionValue=666 and Kama_DirectionValue=-1) or
+		(Frama_DirectionValue=666 and Frama_DirectionValue=-1) or
+		(Mama_DirectionValue=666 and Mama_DirectionValue=-1) or
+		(Qqe_DirectionValue=666 and Qqe_DirectionValue=-1) or 
+		(Hma_DirectionValue=666 and Hma_DirectionValue=-1);
+
+
+
+if TimeOfDay_TradingAllowed and marketposition=1 and condition3 then begin  
+		 Sell ("LX") Next Bar at Market;
+end;	
+	
+
+if TimeOfDay_TradingAllowed and marketposition=-1 and condition2  then begin
+	BuyToCover ("SX") Next Bar at Market;
+end;
+
+

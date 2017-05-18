@@ -1,0 +1,25 @@
+// Function  Fortune_StochasticsKDJ
+
+Inputs:
+	PeriodD(NumericSimple),
+	PeriodK(NumericSimple),
+	Smooth(NumericSimple);
+	
+Variables:
+	den(0), nom(0), fastKValue(0), kDJ(0), kDJMA(0), kValue(0), dValue(0);
+	
+nom = Close - Lowest(Low, PeriodK);
+den = Highest(High, PeriodK) - Lowest(Low, PeriodK);
+
+if (den = 0.000000000001) then
+	fastKValue = IFF(CurrentBar = 0, 50, fastKValue[1])
+else
+	fastKValue	= MinList(100, MaxList(0, 100 * nom / den));
+
+// Slow %K == Fast %D	(comment from original author)
+kValue	= Average(fastKValue, Smooth);
+dValue 	= Average(kValue, PeriodD);
+
+kDJ		= (3 * kValue) - (2 * dValue);
+
+Fortune_StochasticsKDJ=kDJ;

@@ -1,0 +1,77 @@
+{ Dan Shirley's "Meander" Strategy
+  From ActiveTrader Magazine, September 2002, page 84 - by Dan Shirley
+  Dan Shirley's work, based on Thomas Stridsman "Trading Systems That Work" - McGraw Hill 2001
+
+	Entered and adapted by: HamFon
+	Contact:	ncrowle@sprintmail.com
+	Date:		8/08/2002, original 08/08/2002
+	Revision:	1.01
+}
+
+Inputs: Mlt (0.7), MALength (34);
+
+Value1 = Stddev ((H - O), 5) * Mlt;
+Value2 = Stddev ((O - L), 5) * Mlt;
+
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1645),TimeOfDay_ExclHoursFrom(1650),TimeOfDay_ExclHoursTo(1800);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+
+ // ************  Max Loss Pr Day Filter ************
+ inputs: MaxLossPerDay_FilterDef(8888888888),En_MaxLossPerDay(0),MaxLoss_Dollar(600);
+      variables: MaxLoss_Triggered(false),MaxLoss_TodayNet(0), MaxLoss_YesterdayNet(0);
+      if En_MaxLossPerDay= 1 then begin	
+	if date <> date[1] then begin
+		MaxLoss_YesterdayNet = NetProfit;
+	end;
+	//if MarketPosition = 0 then begin
+		MaxLoss_TodayNet = NetProfit - MaxLoss_YesterdayNet;
+	//end;
+	if -MaxLoss_Dollar > MaxLoss_TodayNet then
+		MaxLoss_Triggered=true
+	else
+		MaxLoss_Triggered=false;
+      end;
+
+
+if MaxLoss_Triggered=true then
+begin 
+
+	if MarketPosition = 1 and TimeOfDay_TradingAllowed then sell next bar at market;
+	if MarketPosition = -1 and TimeOfDay_TradingAllowed then buytocover next bar at market;
+end;
+
+Condition5= TimeOfDay_TradingAllowed and MaxLoss_Triggered=false;
+
+if Condition5=true then 
+begin
+
+	if MarketPosition = 0 then begin
+		Value3 = AverageFC (C, MALength) - AverageFC (C[1], MALength);
+		if Value3 > 0 then begin
+			Buy ("Long Scalp") next bar at C - Value2  limit;
+			Sell ("LS") next bar at C + Value1 limit;
+		end else if Value3 < 0 then begin
+			Sell Short ("Short Scalp") next bar at C+ Value1  limit;
+			Buy to Cover ("SS") next bar at c  - Value2 limit;
+		end;
+	end;
+
+	if  MarketPosition = 1 then
+		Sell ("LS2") next bar at C + Value1  limit
+	else if  MarketPosition = -1 then
+		Buy to Cover ("SS2") next bar at C - Value2  limit;
+
+
+end;

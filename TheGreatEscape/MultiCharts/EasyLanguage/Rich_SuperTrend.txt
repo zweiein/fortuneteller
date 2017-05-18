@@ -1,0 +1,542 @@
+
+
+inputs: 
+
+Strength(12), STStop(4), stoploss(26), target1(60), target2(24), wmalength(45), matype(2), reverse(0), breakeven(1), entry_type(0), dayatrmin(25), dayatrmax(250), dailyprofit(1600), dailyloss(800);
+
+vars: 
+
+strend(0),
+
+st(0),
+
+todaynet(0),
+
+todaynethighest(0),
+
+yesterdaynet(0),
+
+opentrend(0),
+
+stopprice(0),
+
+wmah(0),
+
+wmal(0),
+
+pnltext(0),
+
+pnltext2(0),
+
+pnltext3(0),
+
+todaywinners(0),
+
+yesterdaywinners(0),
+
+todaylosers(0),
+
+todaytotal(0),
+
+yesterdaytotal(0),
+
+todaypercentw(0),
+
+openbar(0),
+
+dayhigh(0),
+
+daylow(0),
+
+yhigh(0),
+
+ylow(0),
+
+lasttradedhour(0),
+
+temptext("STRATEGY RUNNING");
+
+
+
+st = SuperTrend(1, Strength, STStop, strend);
+
+
+
+if matype = 0 then begin
+
+    wmah = WAverage(H, wmalength);
+
+    wmal = WAverage(L, wmalength);
+
+end;
+
+
+
+if matype = 1 then begin 
+
+    wmah = XAverage(H, wmalength);
+
+    wmal = XAverage(L, wmalength);
+
+end; 
+
+
+
+if matype = 2 then begin
+
+    wmah = Average(H, wmalength);
+
+    wmal = Average(L, wmalength);
+
+end;
+
+
+
+if date <> date[1] then begin
+
+    lasttradedhour = 0;
+
+    yesterdaynet = NetProfit + OpenPositionProfit;
+
+    todaynet = 0;
+
+    todaynethighest = 0;
+
+    opentrend = strend;
+
+    openbar = currentbar + 1;
+
+    yhigh = dayhigh;
+
+    ylow = daylow;
+
+    dayhigh = high;
+
+    daylow = low;
+
+    yesterdaywinners = NumWinTrades;
+
+    todaywinners = 0;
+
+    todaylosers = 0;
+
+    yesterdaytotal = TotalTrades;
+
+    todaytotal = 0;
+
+    todaypercentw = 0;
+
+    Text_SetStyle(pnltext, 1, 2);
+
+    Text_SetStyle(pnltext2, 1, 2);
+
+    Text_SetStyle(pnltext3, 1, 2);
+
+    Text_SetLocation(pnltext, date[1], time[1], ylow - (30 * MinMove/PriceScale));
+
+    Text_SetLocation(pnltext2, date[1], time[1], ylow - (15 * MinMove/PriceScale));
+
+    Text_SetLocation(pnltext3, date[1], time[1], yhigh + (10 * MinMove/PriceScale));
+
+    pnltext = Text_New(date, time, daylow - (5 * MinMove/PriceScale), text("  Last: $ ", positionprofit(1):0:0, " / Today: $ ", todaynet:0:0, "  "));
+
+    pnltext2 = Text_New(date, time, daylow - (7 * MinMove/PriceScale), text("  W: ", todaywinners:0:0, " (", todaypercentw:0:0, "%) / L: ", todaylosers:0:0, " (", 100-todaypercentw:0:0, "%)  "));
+
+    pnltext3 = Text_New(date, time, dayhigh + (5 * MinMove/PriceScale), text("  STRATEGY: ON  "));
+
+    
+
+    Text_SetSize(pnltext, 12);
+
+    Text_SetBorder(pnltext, true);
+
+    Text_SetBGColor(pnltext, iff(todaynet > 0, blue, red));
+
+    Text_SetColor(pnltext, white);
+
+    Text_SetStyle(pnltext, 0, 2);
+
+    
+
+    Text_SetSize(pnltext2, 12);
+
+    Text_SetBorder(pnltext2, true);
+
+    Text_SetBGColor(pnltext2, iff(todaynet > 0, blue, red));
+
+    Text_SetColor(pnltext2, white);
+
+    Text_SetSTyle(pnltext2, 0, 2);
+
+end;         
+
+
+
+todaynet     = NetProfit + OpenPositionProfit - yesterdaynet;
+
+if todaynet > todaynethighest then todaynethighest = todaynet;
+
+
+
+// trade performance report
+
+
+
+todaywinners = NumWinTrades - yesterdaywinners;
+
+todaytotal = TotalTrades - yesterdaytotal;
+
+todaylosers = todaytotal - todaywinners;
+
+if todaytotal > 0 then begin
+
+    if todaywinners > 0 and todaylosers > 0 then todaypercentw = (todaywinners / todaytotal) * 100;
+
+    if todaywinners > 0 and todaylosers = 0 then todaypercentw = 100;
+
+    if todaywinners = 0 and todaylosers > 0 then todaypercentw = 0;
+
+end;
+
+    
+
+    
+
+if pnltext3 > 0 and date = date[1] then begin
+
+    if condition1 = true then temptext = "  STRATEGY: RUNNING  ";
+
+    if condition1 = false and todaynet >= dailyprofit then temptext = "  STRATEGY: DAILY PROFIT  ";
+
+    if condition1 = false and todaynet <= -dailyloss then temptext = "  STRATEGY: DAILY STOP  ";
+
+    Text_SetString(pnltext3, temptext);
+
+    Text_SetLocation(pnltext3, date, time, dayhigh + (20 * MinMove/PriceScale));
+
+    Text_SetSize(pnltext3, 12);
+
+    Text_SetBorder(pnltext3, true);
+
+    Text_SetBGColor(pnltext3, iff(todaynet >= dailyprofit, darkgreen, red));
+
+    Text_SetColor(pnltext3, white);
+
+    Text_SetSTyle(pnltext3, 0, 2);
+
+end;
+
+
+
+if pnltext > 0 and todaytotal > 0 and date = date[1] then begin
+
+    Text_SetString(pnltext, text("  Last: $ ", positionprofit(1):0:0, " / Today: $ ", todaynet:0:0, "  "));
+
+    Text_SetLocation(pnltext, date, time, daylow - (20 * MinMove/PriceScale));
+
+    Text_SetSize(pnltext, 12);
+
+    Text_SetBorder(pnltext, true);
+
+    Text_SetBGColor(pnltext, iff(todaynet > 0, blue, red));
+
+    Text_SetColor(pnltext, white);
+
+    Text_SetStyle(pnltext, 0, 2);
+
+end;
+
+
+
+if pnltext2 > 0 and todaytotal > 0 and date = date[1] then begin
+
+    Text_SetString(pnltext2, text("  W: ", todaywinners:0:0, " (", todaypercentw:0:0, "%) / L: ", todaylosers:0:0, " (", 100-todaypercentw:0:0, "%)  "));
+
+    Text_SetLocation(pnltext2, date, time, daylow - (10 * MinMove/PriceScale));
+
+    Text_SetSize(pnltext2, 12);
+
+    Text_SetBorder(pnltext2, true);
+
+    Text_SetBGColor(pnltext2, iff(todaynet > 0, blue, red));
+
+    Text_SetColor(pnltext2, white);
+
+    Text_SetSTyle(pnltext2, 0, 2);
+
+end;
+
+
+
+if MarketPosition = 1 then begin Text_SetBGColor(pnltext3, blue); Text_SetString(pnltext3, text("  STRATEGY: LONG ", CurrentContracts:0:0, " @", EntryPrice(0), "  ")); end;
+
+if MarketPosition = -1 then begin Text_SetBGColor(pnltext3, red); Text_SetString(pnltext3, text("  STRATEGY: SHORT ", CurrentContracts:0:0, " @", EntryPrice(0), "  ")); end;
+
+
+
+//condition1=todaynet > -dailyloss and todaynet < dailyprofit;
+
+
+
+//condition1=todaynet < dailyprofit and (lasttradedh  our < HoursFromDateTime(ELDateToDateTime(Date) + E  LTimeToDateTime(Time)) or MarketPosition <> 0);
+
+
+
+condition1=todaynet > -dailyloss and todaynet < dailyprofit and Time <> 830 and Time <> 900 and Time <> 930;
+
+
+
+if High > dayhigh then dayhigh = High;
+
+if Low < daylow then daylow = Low;
+
+
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1645),TimeOfDay_ExclHoursFrom(1650),TimeOfDay_ExclHoursTo(1800);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+
+//if //strend =1 then strend =-1 else strend =1;
+
+
+
+// entries
+
+//and (opentrend <> strend or time > 900) 
+
+if TimeOfDay_TradingAllowed=true and condition1 = true and todaynet + (((target1) * MinMove/PriceScale) * BigPointValue) - commission - slippage < dailyprofit and todaynet - (((stoploss+1) * MinMove/PriceScale) * BigPointValue) + commission + slippage > -dailyloss and (dayhigh - daylow > (dayatrmin * MinMove / PriceScale) and dayhigh - daylow < (dayatrmax * MinMove / PriceScale)) and currentbar - 1 > openbar and time < 1100 then begin
+
+    opentrend = 0;
+
+
+
+    if entry_type = 0 and wmah > wmah[1] and strend = 1 and L < st and C = H then begin
+
+        Buy 2 Contracts This Bar At Close;
+
+    end;
+
+    
+
+    if entry_type = 0 and wmal < wmal[1] and strend = -1 and H > st and C = L then begin
+
+        Sellshort 2 Contracts This Bar At Close  ;
+
+    end;
+
+    
+
+    if entry_type = 1 and wmah > wmah[1] and strend = 1 and H < st and C = H then begin
+
+        Buy 2 Contracts This Bar At Close;
+
+    end;
+
+    
+
+    if entry_type = 1 and wmal < wmal[1] and strend = -1 and L > st and C = L then begin
+
+        Sellshort 2 Contracts This Bar At Close;
+
+    end;
+
+    
+
+    if entry_type = 2 and wmah < wmah[1] and strend = 1 and H > st and C = H then begin
+
+        Buy 2 Contracts This Bar At Close;
+
+    end;
+
+    
+
+    if entry_type = 2 and wmal > wmal[1] and strend = -1 and L < st and C = L then begin
+
+        Sellshort 2 Contracts This Bar At Close;
+
+    end;
+
+    
+
+    if entry_type = 3 and wmah crosses above st and strend = 1 then begin
+
+        Buy 2 Contracts This Bar At Close;
+
+    end;
+
+    
+
+    if entry_type = 3 and wmal crosses below st and strend = -1 then begin
+
+        Sellshort 2 Contracts This Bar At Close;
+
+    end;
+
+    
+
+    if entry_type = 4 and wmah > wmah[1] and st = st[1] and strend = 1 then begin
+
+        Buy 2 Contracts Next Bar At st - ((BarInterval * 2) * MinMove/PriceScale) Limit;
+
+    end;
+
+    
+
+    if entry_type = 4 and wmal < wmal[1] and st = st[1] and strend = -1 then begin
+
+        Sellshort 2 Contracts Next Bar At st + ((BarInterval * 2) * MinMove/PriceScale) Limit;
+
+    end;
+
+end;
+
+
+if TimeOfDay_TradingAllowed=true then begin
+
+
+// exits
+
+SetExitOnClose;
+
+//if time > 1320 and MarketPosition = 1 then Sell All Contracts This Bar At Close;
+
+//if time > 1320 and MarketPosition = -1 then Buytocover All Contracts This Bar At Close;
+
+
+
+// hard stop
+
+
+
+//if MarketPosition = 1 then Sell All Contracts Next   Bar At EntryPrice(0) - ((stoploss) * MinMove/PriceScale) Stop;
+
+//if MarketPosition = -1 then Buytocover All Contracts Next Bar At EntryP  rice(0) + ((stoploss) * MinMove/PriceScale) Stop;
+
+SetStopContract;
+
+SetStopLoss((stoploss * MinMove/PriceScale) * BigPointValue);
+
+
+
+// daily limits
+
+
+
+if condition1 = false then begin
+
+    if MarketPosition = 1 then Sell All Contracts This Bar At Close;
+
+    if MarketPosition = -1 then Buytocover All Contracts This Bar At Close;
+
+end;
+
+
+
+// reversal stop
+
+
+
+if MarketPosition = 1 and reverse = 1 and strend = -1 then Sell All Contracts This Bar At Close;
+
+if MarketPosition = -1 and reverse = 1 and strend = 1 then Buytocover All Contracts This Bar At Close;
+
+
+
+
+
+// doing good breakeven
+
+
+
+if MarketPosition <> 0 and breakeven = 1 and todaynet > dailyprofit/2 then SetDollarTrailing(((stoploss) * MinMove/PriceScale) * BigPointValue);
+
+
+
+
+
+// normal targets
+
+
+
+
+
+if MarketPosition = 1 then begin
+
+
+
+    if CurrentContracts = 2 then begin
+
+        if C = L then Sell 1 Contract Next Bar At EntryPrice(0) + ((target1) * MinMove/PriceScale) Limit;
+
+        Sell 1 Contract Next Bar At EntryPrice(0) + ((target1+target2)    * MinMove/PriceScale) Limit;
+
+    end;
+
+     
+
+    if CurrentContracts = 1 then begin
+
+        if C = L then Sell 1 Contract Next Bar At EntryPrice(0) + ((target1+target2) * MinMove/PriceScale) Limit;
+
+    end;
+
+
+
+end;
+
+
+
+if MarketPosition = -1 then begin
+
+
+
+    if CurrentContracts = 2 then begin
+
+        if C = H then Buytocover 1 Contract Next Bar At EntryPrice(0) - ((target1) * MinMove/PriceScale) Limit;
+
+        Buytocover 1 Contract Next Bar At EntryPrice(0) - ((target1+target2)    * MinMove/PriceScale) Limit;
+
+    end;
+
+    
+
+    if CurrentContracts = 1 then begin
+
+        if C = H then Buytocover 1 Contract Next Bar At EntryPrice(0) - ((target1+target2) * MinMove/PriceScale) Limit;
+
+    end;
+
+
+
+end;
+
+end;
+
+
+
+
+{if todaynet + OpenPositionProfit > dailyprofit then begin
+
+    if MarketPosition = 1 then Sell All Contracts This Bar At Close;
+
+    if MarketPosition = -1 then Buytocover All Contracts This Bar At Close;
+
+end;} 
+
+
+
+
+
+
+
+

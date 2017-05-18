@@ -1,0 +1,21 @@
+{ Volume Weighted Average Function
+        Contact:        ncrowle@sprintmail.com
+        Date:           09/06/2003, original 09/06/2003
+        Revision:       1.00
+        Status:         Gnu Public License - this function may be used or shared freely with
+                                no fee, as long as this original header comment is included.
+        Purpose:        Calculates a Volume Weighted Average, described by John Bollinger.
+}
+
+Inputs: Price (NumericSeries), Length (Numeric);
+
+variables: VolumePriceTotal (0), VolumeTotal (0);
+
+VolumePriceTotal = 0;
+VolumeTotal = 0;
+for Value1 = 0 to Length - 1 begin
+        VolumePriceTotal = VolumePriceTotal + Price[Value1] * Volume[Value1];
+        VolumeTotal = VolumeTotal + Volume[Value1];
+end;
+if VolumeTotal = 0 then VolumeTotal = 1;
+HamVWAverage = VolumePriceTotal / VolumeTotal;

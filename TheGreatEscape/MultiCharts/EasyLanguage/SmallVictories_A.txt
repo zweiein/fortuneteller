@@ -1,0 +1,15 @@
+input :AtrFactor(0.6), AtrLen(20);
+
+vars: atr(0);
+atr=AverageTrueRange(AtrLen);
+
+if o<=(l+atr*AtrFactor) and c>o and o[1]<= ( l[1]+ atr*AtrFactor) then
+begin
+ buy next bar at (c+o)/2 limit;
+end;
+ 
+if o>=(h-(atr*AtrFactor)) and c<o and  o[1]>=(h[1]-atr*AtrFactor) then
+begin
+sellshort next bar at (c+o)/2 limit;
+
+end;

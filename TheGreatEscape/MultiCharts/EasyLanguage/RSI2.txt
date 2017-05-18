@@ -1,0 +1,83 @@
+{== START OF HEADER ==========================================================================
+
+Program:    RSI Strategy
+Date:       April 2012-2013
+Platform:   TradeStation v9.1
+ 
+DESCRIPTION: Popularized by Larry Connors and Cesar Alvarez's book, Short Term Trading
+Strategies That Work, this program will use a three day cumulative RSI indicator as a buy
+trigger for enteries in the S&P 500 market. 
+
+1. Price must be above its 200-day moving average
+2. The two-period RSI value must be below 5
+3. Exit when price closes above the 5-day simple moving average 
+
+All trading is performed on daily bars.
+
+For more informaton see: http://www.systemtradersuccess.com
+
+== END OF HEADER =============================================================================
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Copyright © 2012-2013. Capital Evolution, LLC. All Rights Reserved.
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+== DEFINE ALL INPUTS AND VARIABLES ==========================================================}
+
+Setstopposition;
+
+Input: {-------------------------------------------------------------------------------------}
+Lots(2),
+RSILookback(2),
+RSIThreshold(5),
+MAExitPeriod(5), 
+NbarExit(5),
+RegimeLookback(200),
+RiskPerTrade$(2000 {Dollars to risk per trade});
+
+Variables: {---------------------------------------------------------------------------------}
+vShares(100),
+RSI_Value(0), 
+MA200(0),
+ExitMA(0);
+
+
+
+
+{ === START OF MAIN PROGRAM ================================================================} 
+
+RSI_Value = RSI(Close,RSILookback);
+MA200 =  Average(Close, RegimeLookback);
+ExitMA =  Average(Close, MAExitPeriod);
+
+vShares = Lots;
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1555),TimeOfDay_NonTradingHoursTo(1700);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+
+If ( RSI_Value <= RSIThreshold ) And timefilter AND ( Close > MA200 ) Then buy("RSI Buy") vShares shares this bar at close;
+
+{Exit Method -- Comment the rule you wish to test }
+
+If ( MarketPosition <>  0 ) And timefilter AND  ( Close > ExitMA ) Then sell("MA Corss Exit") this bar at close;
+//If ( Barssinceentry = NbarExit ) Then sell("NBar Exit") this bar at close;
+
+{ Stop Loss }
+If ( RiskPerTrade$ > 0 and timefilter) Then SetStopLoss( RiskPerTrade$ );
+
+
+{== END OF MAIN PROGRAM =====================================================================
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Copyright © 2012-2013. Capital Evolution, LLC. All Rights Reserved.
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++}

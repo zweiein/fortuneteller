@@ -1,0 +1,70 @@
+[IntrabarOrderGeneration = false]
+inputs:  Price( Close ),BarH(High), BarL(Low), ConsecutiveBars( 3 ) ;
+inputs: PositionBasis( false ), AtrCount( 2) , AtrRatio(1), UseLimitOrders(false);
+Vars:  BarSize(0),AvgBarSize(0),AtrV(0),TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Loss(1000);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+inputs:  TicksSL( 45 ) ;
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue) ; 
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then Sell ("CloseLong") next bar at market;
+		if mp<0 then BuyToCover ("CloseShort") next bar at market;
+	end;	
+end;
+
+BarSize=absvalue(BarH-BarL)/TickSize;
+AvgBarSize=average(BarSize,atrcount);
+
+Condition5= timefilter and  profitlossfilter;
+
+if condition5 then begin
+	
+	AtrV=AvgBarSize/AtrRatio;//AvgTrueRange(AtrCount)/AtrRatio;
+	SetProfitTarget(AtrV*TickValue) ; 
+
+	if Price > Price[1] then
+		Value1 = Value1 + 1                                                                                                                
+	else
+		Value1 = 0 ;
+	if Value1 >= ConsecutiveBars then begin
+		if (UseLimitOrders) then SellShort ( "ConsUpLimSE" ) next bar Close limit  else SellShort ( "ConsUpSE" ) next bar market ;
+	end;
+
+	if Price < Price[1] then
+		Value2 = Value2 + 1                                                                                                                     
+	else
+		Value2 = 0 ;
+	if Value2 >= ConsecutiveBars then begin
+		if (UseLimitOrders) then Buy ( "ConsDnLimLE" ) next bar at Close limit else Buy ( "ConsDnLE" ) next bar at market ;
+	end;
+
+end;

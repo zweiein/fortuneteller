@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+X-COMMENT: Main-Class will be added automatically by build
+Main-Class: fortuneteller.adapter.ose.Main
+Class-Path: lib/log4j-1.2.15.jar lib/commons-net-3.0.1.jar lib/commons-pool-1.5.4.jar lib/commons-dbcp-1.2.2.jar  lib/scala-library-2.9.2.jar
+

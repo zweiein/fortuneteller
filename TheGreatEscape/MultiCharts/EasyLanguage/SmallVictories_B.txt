@@ -1,0 +1,15 @@
+input :AtrIncreasing(true),AtrShortLen(1), AtrLongLen(20);
+vars: atrs(0),atrl(0), atrtst(false);
+atrs=AverageTrueRange(AtrShortLen);
+atrl=AverageTrueRange(AtrLongLen);
+atrtst=(atrs>atrl and AtrIncreasing) or (atrs<atrl and  AtrIncreasing=false) ;
+
+if atrtst and c>o  then
+begin
+	buy next bar at (c+o)/2 limit;
+end;
+ 
+if atrtst and c<o  then
+begin
+	sellshort next bar at (c+o)/2 limit;
+end;

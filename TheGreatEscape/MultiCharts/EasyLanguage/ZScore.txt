@@ -1,0 +1,75 @@
+
+
+{Average Z-Score Strategy buys when momentum of the average z-score is negative.
+ Sells short when the momentum of the average z-scores is positive.}
+ 
+Inputs: UseMacdZScore(1),ForceAlternOppositePosition(1), MacdFastLen( 3 ),  Length( 10 ), MomLen(5), Price(Close),RiskPerTrade$(2000 {Dollars to risk per trade}),MaxLotSize(3),AV(2),BV(2),
+AccountSize$(10000 {Strating account size in dollars});
+Vars: StandDev(0), ZScore(0),MACZScore(0),  Avg(0), AvgZScore(0), AvgZMom(0),vShares(1);
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Profit(4000),Daily_Max_Loss(500);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+end;
+profitlossfilter= -Daily_Max_Loss< todaynet and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(2155),TimeOfDay_NonTradingHoursTo(2300);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+
+
+StandDev = StandardDev(Price, Length,2);//Standard Deviation of Security
+Avg = Xaverage(Price, Length);//Avg Closing Price
+If StandDev <> 0 then 
+begin
+	ZScore = (Price - Avg) / StandDev;//Z-Score Calculation
+	//MAC-Z= (Z-score, 25)*A+ (MACD,25)/(Stdeva,25)*B
+	MACZScore=(Power(ZScore,AV)  * MACD(Price,MacdFastLen,Length))/Power(StandDev,BV);
+end
+Else
+Begin
+	ZScore = 0;
+	MACZScore=0;
+end;
+
+AvgZScore = XAverage(ZScore,Length);//Average Z-Score
+if UseMacdZScore=1 then
+	AvgZMom = Momentum(MACZScore, MomLen)//Momentum of Average Z-Score
+else
+	AvgZMom = Momentum(AvgZScore, MomLen);//Momentum of Average Z-Score
+
+
+vShares = _CE_Normalize_Units_vs_Volatility( AccountSize$, RiskPerTrade$, false, Close, 10, 5, false );
+If ( vShares < 1 ) Then vShares = 1;
+if ( vShares > MaxLotSize) then vShares= MaxLotSize;
+
+
+if profitlossfilter and timefilter  then 
+begin
+	If AvgZMom > 0 and (ForceAlternOppositePosition=0 or (MarketPosition=1 or (MarketPosition=0 and MarketPosition(1) >= 0 ))) then sellshort vShares  shares next bar at market;
+	If AvgZMom < 0 and (ForceAlternOppositePosition=0 or (MarketPosition=-1 or (MarketPosition=0 and MarketPosition(1) <= 0 ))) then buy vShares  shares next bar at market;
+end
+else
+begin
+	if MarketPosition=1 and timefilter and profitlossfilter=false then sell CurrentContracts shares next bar at market;
+	if MarketPosition=-1 and timefilter and profitlossfilter=false  then buytocover CurrentContracts shares next bar at market;
+end;

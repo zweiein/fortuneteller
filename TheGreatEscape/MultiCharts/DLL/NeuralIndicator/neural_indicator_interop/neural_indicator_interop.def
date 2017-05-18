@@ -1,0 +1,3 @@
+LIBRARY	"neural_indicator_interop"
+EXPORTS
+	Summ

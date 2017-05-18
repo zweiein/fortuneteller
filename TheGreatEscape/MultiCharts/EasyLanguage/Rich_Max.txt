@@ -1,0 +1,60 @@
+inputs:
+int EntryChannelLength( 40 ),
+int ExitChannelLength( 15 ),
+int ATRLength( 20 ),
+double ATRVolCoef( .9 ),
+double ATRStopLossMult( 4 ) ;
+variables:
+double UpperEntryChannel( 0 ),
+double LowerEntryChannel( 0 ),
+double UpperExitChannel( 0 ),
+double LowerExitChannel( 0 ),
+double StopATR( 0 ),
+bool EntryVolOK( false ) ;
+UpperEntryChannel = Highest( High, EntryChannelLength ) ;
+LowerEntryChannel = Lowest( Low, EntryChannelLength ) ;
+UpperExitChannel = Highest( High, ExitChannelLength ) ;
+LowerExitChannel = Lowest( Low, ExitChannelLength ) ;
+StopATR = AvgTrueRange( ATRLength ) ;
+EntryVolOK = AvgTrueRange( 1 ) < StopATR[1] * ATRVolCoef ;
+
+
+
+
+ // ************  ** TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1645),TimeOfDay_ExclHoursFrom(1650),TimeOfDay_ExclHoursTo(1800);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+
+if TimeOfDay_TradingAllowed then begin
+
+	if EntryVolOK or ATRVolCoef = 0 then
+	begin
+	Buy next bar at UpperEntryChannel Stop ;
+	SellShort next bar at LowerEntryChannel Stop ;
+	end ;
+	if MarketPosition = 1 then
+	begin
+	Sell next bar at LowerExitChannel Stop ;
+	if ATRStopLossMult <> 0 then
+	Sell next bar at 
+	EntryPrice - StopATR * ATRStopLossMult Stop ;
+	end 
+	else if MarketPosition = -1 then 
+	begin
+	BuyToCover next bar at UpperExitChannel Stop ;
+	if ATRStopLossMult <> 0 then
+	BuyToCover next bar at 
+	EntryPrice + StopATR * ATRStopLossMult Stop ;
+	end ;	
+	
+end;

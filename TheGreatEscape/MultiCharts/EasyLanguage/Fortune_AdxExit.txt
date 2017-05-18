@@ -1,0 +1,41 @@
+      // ************  Trailing Stop  ************
+      Inputs : ADX_Trailing_Stop_Exit(8888888888),En_ADX_TrailingStop(1),Long_Price_Field(High),Short_Price_Field(Low), ADXPeriods(20), ATRPeriods(10), ADX_Multiplier(1.5),HHLLPeriod(5),ADX_TS_Start_Level(20);
+      vars: LongExitLevel(0), ShortExitLevel(0), TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue),Long_ADX_Stop(0),Short_ADX_Stop(0);      	
+      If MarketPosition=0 then 
+	begin
+
+		LongExitLevel=0;
+		ShortExitLevel=100000;
+	End;
+		
+      		Long_ADX_Stop = NWT_Long_ADX_TS(Long_Price_Field,ADXPeriods,ATRPeriods,ADX_Multiplier,HHLLPeriod) data2;
+      		Short_ADX_Stop = NWT_Short_ADX_TS(Short_Price_Field,ADXPeriods,ATRPeriods,ADX_Multiplier,HHLLPeriod data2);
+      		
+      		If MarketPosition>0 AND (Close data2>=EntryPrice+(ADX_TS_Start_Level*TickSize)) AND Long_ADX_Stop>LongExitLevel then  // Ver 2.a
+      			begin
+      				If (Long_ADX_Stop > Long_ADX_Stop[1]) then  // Ver 2.a
+      				  begin
+      				    LongExitLevel	= Long_ADX_Stop ; // Ver 2.a
+      				   Sell ( "LX" ) next bar at LongExitLevel stop;      				  end;
+      				   
+      				   
+ 
+      			End;
+            	if MarketPosition>0  and  OpenPositionProfit <= Pointvalue AND barssinceentry>100  then begin
+      				//	Sell ( "LX2" ) next bar at market;      
+      				end;  
+      		If  MarketPosition<0 AND (Close data2<=EntryPrice-(ADX_TS_Start_Level*TickSize)) AND Short_ADX_Stop<ShortExitLevel then // Ver 2.a
+      			begin
+      				If (Short_ADX_Stop < Short_ADX_Stop[1]) then  // Ver 2.a
+      				  begin
+      				    ShortExitLevel = Short_ADX_Stop ; // Ver 2.a
+      				    buy to cover ( "SX" ) next bar at ShortExitLevel stop;
+      				  end;
+    
+
+      			End;
+      			
+            				if MarketPosition<0  and OpenPositionProfit <= Pointvalue AND barssinceentry>100 then begin
+      				//	 buy to cover ( "SX2" ) next bar at market;
+  
+      				end; 

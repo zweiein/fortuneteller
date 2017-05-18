@@ -1,0 +1,44 @@
+inputs:
+	ReturnType(NumericSimple),
+	K(NumericSimple),
+	Smooth(NumericSimple);
+
+vars:adxval(0),Ad(0),Brick(0) ,DN(0), UP(0), BricksUp(0), BricksDn(0);
+	
+
+Value1 = AvgTrueRange(Smooth) ;
+
+If BarNumber = 1 Then Begin
+    Up = H ;
+    Dn = L ;
+    Brick = K*(H - L );
+End;
+
+If BarNumber > 1 then begin
+    If C > UP + Brick Then begin
+        BricksUp = IFF(Brick = 0, 0, Floor((C - Up)/Brick)*Brick);
+        UP = Up + BricksUp;
+        Brick = K*Value1;
+        DN = Up - Brick;
+        BricksDn = 0;
+    End;
+
+    If C < Dn - Brick Then begin
+        BricksDn = IFF(Brick = 0, 0, Floor((Dn - C)/Brick)*Brick);
+        Dn = Dn - BricksDn;
+        Brick = K*Value1;
+        Up = Dn + Brick;
+        BricksUp = 0;
+    End;
+
+End;
+
+
+if ReturnType=1 then
+	Fortune_AdaptiveRenko=UP
+	else 
+	Fortune_AdaptiveRenko=Dn;
+
+
+
+

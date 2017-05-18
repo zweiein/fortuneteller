@@ -1,0 +1,83 @@
+input:Price(c), TriggerType(1),HmaLen(10),
+	  HmaLen2(20),
+		AdapMovAvgEffRatioLength( 5 ), 
+		AdapMovAvgFastAvgLength( 2),
+		AdapMovAvgSlowAvgLength( 30 ),
+		AdapMovAvgEffRatioLength2( 10 ), 
+		AdapMovAvgFastAvgLength2( 2),
+		AdapMovAvgSlowAvgLength2( 50 );
+	
+	
+vars:HmaVal1(0),HmaVal2(0), AdapVal1(0),AdapVal2(0), AdapDirection1(0), AdapDirection2(0);
+HmaVal1=jtHMA(Price,HmaLen)data2;
+HmaVal2=jtHMA(Price,HmaLen2) data2;
+AdapVal1= SmoothedAdapMA(Price, AdapMovAvgEffRatioLength, AdapMovAvgFastAvgLength, AdapMovAvgSlowAvgLength,3 )  data2;
+AdapVal2= SmoothedAdapMA(Price, AdapMovAvgEffRatioLength2, AdapMovAvgFastAvgLength2, AdapMovAvgSlowAvgLength2,3 )  data2;
+
+AdapDirection1=iff (AdapVal1[0]>=AdapVal1[1],1,-1);
+AdapDirection2=iff (AdapVal2[0]>=AdapVal2[1],1,-1);
+
+vars: barnbr(0);
+barnbr=BarNumber data2;
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_TradingClosedFrom(1530),TimeOfDay_TradingCLosedUntil(1710);
+variables: TimeOfDay_TradingAllowed(true);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_TradingClosedFrom and Time <=TimeOfDay_TradingCLosedUntil then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+end;
+
+ // ************  Max Loss Pr Day Filter ************
+inputs: MaxLossPerDay_FilterDef(8888888888),En_MaxLossPerDay(1),MaxLoss_Dollar(200);
+variables: MaxLoss_Triggered(false),MaxLoss_TodayNet(0), MaxLoss_YesterdayNet(0);
+if En_MaxLossPerDay= 1 then begin	
+	if date data2<> date[1] data2 then begin
+		MaxLoss_YesterdayNet = NetProfit;
+	end
+	else
+	begin
+		MaxLoss_YesterdayNet =MaxLoss_YesterdayNet [1];
+	end;
+	if MarketPosition = 0 then begin
+		MaxLoss_TodayNet = NetProfit - MaxLoss_YesterdayNet;
+	end;
+	if -MaxLoss_Dollar > MaxLoss_TodayNet then
+		MaxLoss_Triggered=true
+	else
+		MaxLoss_Triggered=false;
+end;
+
+
+	
+if barnbr>barnbr[1] and TimeOfDay_TradingAllowed then begin
+
+	if TriggerType=1 and HmaVal1>HmaVal2 and c data2 > c[1] data2 then begin
+		if MaxLoss_Triggered=false then Buy("L" ) 1  Contracts next bar at Market else BuyToCover("SX1" ) 1  Contracts next bar at Market;
+	end;
+	if TriggerType=2 and HmaVal1>HmaVal2 and c data2 > c[1] data2 and AdapDirection2=1 then begin
+		if MaxLoss_Triggered=false then Buy("L2" ) 1  Contracts next bar at Market else BuyToCover("SX2" ) 1  Contracts next bar at Market;
+	end;
+	if TriggerType=3 and AdapVal1>AdapVal2 and c data2 > c[1] data2 then begin
+		if MaxLoss_Triggered=false then Buy("L3" ) 1  Contracts next bar at Market else BuyToCover("SX3" ) 1  Contracts next bar at Market;
+	end;
+	if TriggerType=4 and HmaVal1>AdapVal1 and c data2 > c[1] data2 then begin
+		if MaxLoss_Triggered=false then Buy("L4" ) 1  Contracts next bar at Market else BuyToCover("SX4" ) 1  Contracts next bar at Market;
+	end;
+
+	if TriggerType=1 and HmaVal1<HmaVal2 and c data2 < c[1] data2 then begin
+		if MaxLoss_Triggered=false then SellShort("S1" ) 1  Contracts next bar at Market  else Sell("LX1" ) 1  Contracts next bar at Market;
+	end;
+	if TriggerType=2 and HmaVal1<HmaVal2 and c data2 < c[1] data2 and AdapDirection2=-1 then begin
+		if MaxLoss_Triggered=false then SellShort("S2" ) 1  Contracts next bar at Market  else Sell("LX2" ) 1  Contracts next bar at Market;
+	end;
+	if TriggerType=3 and AdapVal1<AdapVal2 and c data2 < c[1] data2 then begin
+		if MaxLoss_Triggered=false then SellShort("S3" ) 1  Contracts next bar at Market  else Sell("LX3" ) 1  Contracts next bar at Market;
+	end;
+	if TriggerType=4 and HmaVal1<AdapVal1  and c data2 < c[1] data2 then begin
+		if MaxLoss_Triggered=false then SellShort("S4" ) 1  Contracts next bar at Market  else Sell("LX4" ) 1  Contracts next bar at Market;
+	end;
+
+end;

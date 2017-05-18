@@ -1,0 +1,37 @@
+[IntrabarOrderGeneration = false]
+inputs: LPrice( Low data1), BuyLeftStrength( 2), BuyRightStrength( 2),HPrice( High data1), SellLeftStrength( 2), SellRightStrength( 2)  ;
+vars: barn(0);
+barn=BarNumber data1;
+
+
+inputs: PositionBasis( false ), TicksSL( 35 ) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+if TicksSL>0 then begin
+	if PositionBasis then
+		SetStopPosition
+	else
+		SetStopShare ; 
+	SetStopLoss(TicksSL*TickValue) ;
+end;
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1545),TimeOfDay_ExclHoursFrom(1550),TimeOfDay_ExclHoursTo(1710);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+
+condition1 = PivotLowVS( 1, LPrice, BuyLeftStrength, BuyRightStrength, BuyRightStrength+ 1 ) data1 <> -1 ;
+if condition1 and TimeOfDay_TradingAllowed and barn>barn[1] then
+	Buy ( "PivExtLE" ) next bar at market ;
+	
+condition2 = PivotHighVS( 1, HPrice, SellLeftStrength, SellRightStrength, SellRightStrength+ 1 ) data1 <> -1 ;
+if condition2 and TimeOfDay_TradingAllowed and barn>barn[1] then
+	Sell Short ( "PivExtSE" ) next bar at market ;

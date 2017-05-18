@@ -1,0 +1,77 @@
+[IntrabarOrderGeneration = false]
+inputs:  LPrice( Low Data1), BuyLeftStrength( 2), BuyRightStrength( 2),HPrice( High Data1), SellLeftStrength( 2), SellRightStrength( 2) , MinBars(4), ClosePosQuick(false) ;
+vars: barnum(0);
+barnum=BarNumber Data1;
+ 
+
+inputs: PositionBasis( false ), TicksSL( 35 ) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1545),TimeOfDay_ExclHoursFrom(1550),TimeOfDay_ExclHoursTo(1710);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+
+
+ // ************  Max Loss Pr Day Filter ************
+ inputs: MaxLossPerDay_FilterDef(8888888888),En_MaxLossPerDay(0),MaxLoss_Dollar(600);
+      variables: MaxLoss_Triggered(false),MaxLoss_TodayNet(0), MaxLoss_YesterdayNet(0);
+      if En_MaxLossPerDay= 1 then begin	
+	if date <> date[1] then begin
+		MaxLoss_YesterdayNet = NetProfit;
+	end;
+	//if MarketPosition = 0 then begin
+		MaxLoss_TodayNet = NetProfit - MaxLoss_YesterdayNet;
+	//end;
+	if -MaxLoss_Dollar > MaxLoss_TodayNet then
+		MaxLoss_Triggered=true
+	else
+		MaxLoss_Triggered=false;
+      end;
+
+
+if MaxLoss_Triggered=true then
+begin 
+
+	if MarketPosition = 1 and TimeOfDay_TradingAllowed then sell next bar at market;
+	if MarketPosition = -1 and TimeOfDay_TradingAllowed then buytocover next bar at market;
+end;
+
+value1=Average(C,25);
+if TimeOfDay_TradingAllowed and MaxLoss_Triggered=false then begin
+
+	// Fails when market is closed
+	if TicksSL>0 then begin
+		if PositionBasis then
+			SetStopPosition
+		else
+			SetStopShare ; 
+		SetStopLoss(TicksSL*TickValue) ;
+	end;
+		
+	
+	condition1 = PivotLowVS( 1, LPrice, BuyLeftStrength, BuyRightStrength, BuyRightStrength+ 1 ) Data1 <> -1 ;
+	if condition1 and (HasContainedPos(minbars)=false  or(numlostrades+numwintrades)<1) then begin
+		Buy ( "PivExtLE" ) next bar at market ;      // Always reverse position if already short
+	end;
+       if mp<0 and  condition1 then buytocover next bar at market;
+     // if mp<0 and C>O and barssinceentry>1 then buy to cover next bar at market;
+	condition2 = PivotHighVS( 1, HPrice, SellLeftStrength, SellRightStrength, SellRightStrength+ 1 ) Data1 <> -1 ;
+	if condition2 and (HasContainedPos(minbars)=false  or (numlostrades+numwintrades)<1) then begin
+		Sell Short ( "PivExtSE" ) next bar at market ;
+	end;
+	if mp>0 and condition2 then sell next bar at market;
+	//if mp>0 and C<O and barssinceentry>1 then sell next bar at market;
+
+
+end;

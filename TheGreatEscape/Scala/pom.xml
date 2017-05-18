@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>fortuneteller</groupId>
+  <artifactId>aq</artifactId>
+  <packaging>pom</packaging>
+  <name>FortuneTeller</name>
+  <version>1.0-SNAPSHOT</version>
+  <description>FortuneTeller</description>
+  <url>http://www.FortuneTeller.no/</url>
+  <issueManagement>
+    <url></url>
+  </issueManagement>
+  <inceptionYear>2011</inceptionYear>
+  <mailingLists>
+
+  </mailingLists>
+	<developers>
+		<developer>
+			<id>e29239</id>
+			<name>Steinar Rune Eriksen</name>
+			<email>Steinar.Rune.Eriksen@hafslund.no</email>
+			<organization>Fjordbyen</organization>
+			<roles>
+				<role>Developer</role>
+				<role>Release Manager</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+
+	</developers>
+  <licenses>
+  </licenses>
+ <!-- <scm>
+    <connection>scm:cvs:pserver:anonymous@cvs.sourceforge.net:/cvsroot/edemocrazy:edemocrazy</connection>
+    <developerConnection>scm:cvs:ext:pether@cvs.sourceforge.net:/cvsroot/edemocrazy:edemocrazy</developerConnection>
+    <url>http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/edemocrazy/edemocrazy/</url>
+  </scm>-->
+  <organization>
+    <name></name>
+    <url></url>
+  </organization>
+  <build>
+    <defaultGoal>install</defaultGoal>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <source>1.5</source>
+            <target>1.5</target>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>2.0.1</version>
+          <configuration>
+            <descriptorId>src</descriptorId>
+            <finalName>mobyon-1.0.0</finalName>
+            <outputDirectory>target/dist</outputDirectory>
+            <workDirectory>target/assembly/work</workDirectory>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+  <modules>
+<!--
+	<module>..\BloombergFtp</module>
+	<module>tradingsuite-jms2omxpi</module>-->
+
+  </modules>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </reporting>
+
+	<repositories>
+		<repository>
+			<id>mybatis-snapshot</id>
+			<name>MyBatis Snapshot Repository</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</repository>
+		<!-- repository> <id>hbase</id> <url>https://repository.apache.org/content/repositories/releases/</url> 
+			</repository -->
+		<repository>
+			<id>temp-thrift</id>
+			<name>Thrift 0.2.0</name>
+			<url>http://people.apache.org/~rawson/repo/</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+		<repository>
+			<id>bedatadriven</id>
+			<name>Bedatadriven Public REpo</name>
+			<url>http://nexus.bedatadriven.com/content/groups/public/</url>
+		</repository>
+  	  <repository>
+            <id>Maven central</id>
+            <name>Maven central</name>
+            <url>http://www.ibiblio.org/maven2</url>
+      </repository>
+
+	  <repository>
+
+	    <id>Apache central</id>
+	    <name>Apache central</name>
+	    <url>http://svn.apache.org/repos/asf/</url>
+	  </repository>
+
+
+	</repositories>
+
+	<distributionManagement>
+	  <repository>
+	    <id>ftp-repo</id>
+	    <name>Repository Name</name>
+	    <url>ftp://localhost</url>
+	  </repository>
+	</distributionManagement>
+</project>

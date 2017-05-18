@@ -1,0 +1,64 @@
+QuoteRecorder
+
+	Quote recorder records data in the new archive format into a target folder. It loads through the instrument specification dao, the complete list of specs and compares the vendor of all specs against the vendor identifier, which can be set either in the spring configuration file or it can be left blank, in which case all loaded specs will be recorded. 
+	Per instrument id, one folder will be created, in which per day a subfolder is created. In there a file quotes.csv contains recorded quotes. 
+	Data is appended to the end of the file. 
+	
+	The following xml snipplets are from the quoterecorder.xml configuration file. 
+
+	By default it uses the JMS data source: 
+
+----
+<bean id="quoteSourceJms" class="org.activequant.util.tempjms.JMSQuoteSubscriptionSource">
+	<constructor-arg><value>83.169.9.78</value></constructor-arg>
+	<constructor-arg><value>7676</value></constructor-arg>
+</bean>
+<!--  main class -->
+<bean id="context" class="org.activequant.util.QuoteRecorder"
+	init-method="record">
+	<property name="source" ref="quoteSourceJms" />
+	<property name="dao" ref="quoteArchiveDao" />
+	<property name="specDao" ref="specificationDao" />
+</bean>
+----
+
+	In order to use IB, you have to replace the above snippet with: 
+			
+----
+TO BE ADDED. 
+----			
+
+
+	To record instruments from a specific vendor only (that's matched against the instrument specifications from the master database) modify quoterecorder.xml as shown below. Only 
+	specs that match are considered for subscribing. Usually it's null, so it will record everything. 
+	
+----
+<!--  main class -->
+<bean id="context" class="org.activequant.util.QuoteRecorder"
+	init-method="record">
+	<property name="source" ref="quoteSourceJms" />
+	<property name="dao" ref="quoteArchiveDao" />
+	<property name="specDao" ref="specificationDao" />
+	<property name="vendorIdentifier" value="IB" />
+</bean>	 
+----
+
+	Starting the QuoteRecorder can happen through the start script in the base folder of P2: 
+	
+----
+sh runQuoteRecorder.sh
+----	
+
+	The quote recorder saves all quotes to a specific target folder, which can be specified in the corresponding spring configuration file, in the quote recorder dao section:
+
+----
+<bean id="quoteArchiveDao" class="org.activequant.util.RecorderQuoteDao">
+	<constructor-arg>
+        <value>/home/share/archive</value>
+        </constructor-arg>
+</bean>
+---- 
+
+	The good thing is that the modularity of spring and the way ActiveQuant is written, allows you to plug in any other QuoteDao, you can easily implement your own recorder to save to a specific custom file format or even to FTP if you like. A database recorder dao is shipped in ActiveQuant. 
+
+

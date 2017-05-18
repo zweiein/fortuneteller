@@ -1,0 +1,249 @@
+
+Input: Frame(NumericSimple), Multpier(NumericSimple), 
+ RR1(NumericRef),RR2(NumericRef),RR3(NumericRef),SS1(NumericRef),SS2(NumericRef),SS3(NumericRef),PP(NumericRef);
+
+vars: BodyHiLo(False),Display_MMLevels(True),Display_MMValues(True),Display_MMFrame(False),debug(False),
+	AdapMovAvgEffRatioLength( 10 ),
+	AdapMovAvgFastAvgLength( 2 ),
+	AdapMovAvgSlowAvgLength( 30 );
+Vars: D6(0.00000001), FHigh(H), FLow(L), HH(H), Increment(0), LL(L), MN(0), MX(999999), OCT(1), PriceRange(1), SF(0.0000), Span(1);
+Vars:StrtVal(0), MMLDelete(0), SuppLine(0), RestLine(0);
+Vars: MML(-1), Count(0), TLrt(0), TLlt(0), TLc(1), TLstyle(1);
+Arrays: mVal[13](0), mTxtVal[13](0), mColor[13](1), ML_Ref[13](0),m8th[13]("");
+vars:tester(1),d66(0),d11(0),d12(0),d13(0),d14(0),d15(0),d16(0),d18(0), E11(0), E12(0),E13(0),E14(0),E15(0),E16(0), E18(0);
+vars: DoInit(True);
+vars: AdapMovAvg(0), NumDec(2),        {Number of decimal spaces to use on post}
+          Color(white);     {Color of text that is posted.          }
+vars: HH_save(0),LL_save(0);
+
+If BodyHiLo then HH = Highest(MaxList(O, C), Frame*Multpier)
+	else HH = Highest(H, Frame*Multpier);
+If BodyHiLo then LL = Lowest(MinList(O, C), Frame*Multpier)
+	else LL = Lowest(L, Frame*Multpier);
+
+{ change to update on every tick
+so skip if hh/ll has not changed & update lines every tick 
+update mmlines if HH or LL has changed }
+
+{if HH <> HH_save or LL <> LL_save then begin}
+	
+PriceRange=HH-LL;
+
+if debug = True then print("HH = ", HH);
+if debug = True then print("LL = ", LL);
+if debug = True then print("PriceRange = ", PriceRange:0:4 );
+
+{Indentify Scale Factor}
+If HH <= 250000 and HH > 25000 then SF = 100000
+	else if HH <= 25000 and HH > 2500 then SF = 10000
+    else if HH <= 2500 and HH > 250 then SF = 1000
+    else if HH <= 250 and HH > 25 then SF = 100
+	else if HH <= 12.5 and HH > 6.25 then SF = 12.5
+	else if HH <= 6.25 and HH > 3.125 then SF = 6.25
+	else if HH <= 3.125 and HH > 1.5625 then SF = 3.125
+    else if HH <= 1.5625 and HH > 0.390625 then SF = 1.5625
+    else SF = 0.1953125;
+
+D6 =  intportion(Log10(SF/PriceRange)/Log10(2));
+OCT = SF * (Power(0.50, D6));
+
+if debug = True then print("SF = ", SF:0:4 );
+if debug = True then print("D6 = ", D6:0:4 );
+if debug = True then print("OCTAVE = ", OCT:0:4 );
+
+MN = IntPortion (LL/OCT);
+if debug = True then print("MN = ", MN:0:4 );
+MN = MN * OCT; { trunc occurs before the mult, this forces that}
+
+If (MN + OCT) > HH then MX = MN + OCT
+	else MX = MN + (2 * OCT);
+
+if debug = True then print("MX = ", MX:0:4 );
+if debug = True then print("MN = ", MN:0:4 );
+
+Span=MX-MN;
+
+if LL >= 0.1875 * Span + MN AND HH <= 0.5625 * Span + MN then d12 = MN + 0.50 * Span else d12 =0;
+if LL >= 0.4375 * Span + MN AND HH <= 0.8125 * Span + MN then d14 = MN + 0.75 * Span else d14 =0;
+if LL >= MN - 0.125  * Span AND HH <= 0.625  * Span + MN AND d12 = 0 then d11 = MN + 0.50 * Span else d11 =0;
+if LL >= 0.375  * Span + MN AND HH <= 1.125  * Span + MN AND d14 = 0 then d15 = MX else d15 =0;
+if LL >= 0.125  * Span + MN AND HH <= 0.875  * Span + MN AND d11= 0 AND d12 = 0 AND d14 =0 AND d15 = 0 then d13 = MN + 0.75 * Span else d13 =0;
+if d11+d12+d13+d14+d15 = 0 then d16 = MX else d16 = 0;
+
+	 if d11 > 0 then d18 = d11
+else if d12 > 0 then d18 = d12
+else if d13 > 0 then d18 = d13
+else if d14 > 0 then d18 = d14
+else if d15 > 0 then d18 = d15
+else if d16 > 0 then d18 = d16;	 { added this line }
+	
+FHigh = d18;
+
+if debug = True then print("D11 = ", d11:0:4 );
+if debug = True then print("D12 = ", d12:0:4 );
+if debug = True then print("D13 = ", d13:0:4 );
+if debug = True then print("D14 = ", d14:0:4 );
+if debug = True then print("D15 = ", d15:0:4 );
+if debug = True then print("D16 = ", d16:0:4 );
+if debug = True then print("D18 = ", d18:0:4 );
+
+
+if debug = True then print("Span = ", Span:0:4 );
+if debug = True then print("FHigh = ", FHigh:0:4 );
+
+if d11 > 0 then E11 = MN else E11 = 0;
+if d12 > 0 then E12 = MN  + 0.25 * Span else E12 = 0;
+if d13 > 0 then E13 = MN  + 0.25 * Span else E13 = 0;
+if d14 > 0 then E14 = MN  + 0.50 * Span else E14 = 0;
+if d15 > 0 then E15 = MN  + 0.50 * Span else E15 = 0;
+if d16 > 0 then E16 = MN else E16 = 0;
+E18 = E11+E12+E13+E14+E15+E16;
+FLOW = e18;
+
+if debug = True then print("E11 = ", E11:0:4 );
+if debug = True then print("E12 = ", E12:0:4 );
+if debug = True then print("E13 = ", E13:0:4 );
+if debug = True then print("E14 = ", E14:0:4 );
+if debug = True then print("E15 = ", E15:0:4 );
+if debug = True then print("E16 = ", E16:0:4 );
+if debug = True then print("E18 = ", E18:0:4 );
+
+if debug = True then print("FLow = ", FLow:0:4);
+
+Increment=0.125*(FHigh-FLow);
+
+Value11=FLow-Increment;
+StrtVal=Value11-Increment;
+Value0=FLow;
+Value1=FLow+Increment;
+Value2=Value1+Increment;
+Value3=Value2+Increment;
+Value4=Value3+Increment;
+Value5=Value4+Increment;
+Value6=Value5+Increment;
+Value7=Value6+Increment;
+Value8=FHigh; 
+Value9=Value8+Increment;
+Value10=Value9+Increment;
+
+//SupportResistance(SuppLine,RestLine) data2;
+SS3=value1;
+SS2=value2;
+SS1=value3;
+PP=value4;
+RR1=value5;
+RR2=value6;
+RR3=value7;
+
+if debug = True then print(Strtval:0:4 );
+if debug = True then print(value11:0:4 );
+if debug = True then print(value0:0:4 );
+if debug = True then print(value1:0:4 );
+if debug = True then print(value2:0:4 );
+if debug = True then print(value3:0:4 );
+if debug = True then print(value4:0:4 );
+if debug = True then print(value5:0:4 );
+if debug = True then print(value6:0:4 );
+if debug = True then print(value7:0:4 );
+if debug = True then print(value8:0:4 );
+if debug = True then print(value9:0:4 );
+if debug = True then print(value10:0:4 );
+
+
+mColor[0]=Tool_darkRed;
+mColor[1]=Tool_darkYellow;
+mColor[2]=Tool_darkBlue;
+mColor[3]=Tool_darkYellow;
+mColor[4]=Tool_darkRed;
+mColor[5]=Tool_darkGreen;
+mColor[6]=Tool_darkBlue;
+mColor[7]=Tool_darkGreen;
+mColor[8]=Tool_darkRed;
+mColor[9]=Tool_darkYellow;
+mColor[10]=Tool_darkBlue;
+mColor[11]=Tool_darkYellow;
+mColor[12]=Tool_darkRed;
+
+mVal[0]=Tool_Dotted;
+mVal[1]=Tool_Dotted;
+mVal[2]=Tool_Solid;
+mVal[3]=Tool_Dotted;
+mVal[4]=Tool_Dotted;
+mVal[5]=Tool_Dotted;
+mVal[6]=Tool_Dotted;
+mVal[7]=Tool_Dotted;
+mVal[8]=Tool_Dotted;
+mVal[9]=Tool_Dotted;
+mVal[10]=Tool_Solid;
+mVal[11]=Tool_Dotted;
+mVal[12]=Tool_Dotted;
+
+m8th[0]= " -2/8 ";
+m8th[1]= " -1/8 ";
+m8th[2]= " 0/8  ";
+m8th[3]= " 1/8  ";
+m8th[4]= " 2/8  ";
+m8th[5]= " 3/8  ";
+m8th[6]= " 4/8  ";
+m8th[7]= " 5/8  ";
+m8th[8]= " 6/8  ";
+m8th[9]= " 7/8  ";
+m8th[10]=" 8/8  ";
+m8th[11]="+1/8 ";
+m8th[12]="+2/8 ";
+
+{
+If CurrentBar>=Frame+1 then begin	
+	For Count = 0 to 12 begin
+		MMLDelete=TL_Delete(ML_Ref[Count]);
+	end;
+end;
+}
+{**** Intialize ML & Text Arrays ****}
+If DoInit then begin
+	For Count = 0 to 12 begin
+		
+		value19 = StrtVal + Count*Increment;
+		ML_Ref[Count]=TL_New(Date[1], Time[1], value19, Date, Time, value19);
+		
+		mTxtVal[Count]=Text_New(D,Time,C,m8th[Count]+ "Intialize Array");
+		Text_SetStyle(mTxtVal[Count], 0, 2);
+		Text_SetColor(mTxtVal[Count],color);
+
+	end;
+	DoInit=False;
+
+end;
+
+If LastBarOnChart then begin	
+		For Count = 0 to 12 begin
+		TL_Delete(ML_Ref[Count]);
+		value19 = StrtVal + Count*Increment;
+		ML_Ref[Count]=TL_New(Date[1], Time[1], value19, Date, Time, value19);
+		TLstyle=TL_SetStyle(ML_Ref[Count], mVal[count]);
+		TLrt=TL_SetExtRight(ML_Ref[Count], true);
+		TLlt=TL_SetExtLeft(ML_Ref[Count], true);
+		TLc=TL_SetColor(ML_Ref[Count], mColor[count]);
+
+	if Display_MMValues = True OR Display_MMLevels = True then begin
+	if DataCompression	> 0
+		then Value20=AddTime(T,BarInterval)
+		else Value20=AddTime(T,2);
+  		Text_SetLocation(mTxtVal[Count],D,Value20+2,value19);
+		if Display_MMValues = True AND 	Display_MMLevels = True then Text_SetString(mTxtVal[Count], ""+m8th[Count]+NumToStr(value19, numdec))
+		else if Display_MMValues = True AND	Display_MMLevels = False then Text_SetString(mTxtVal[Count], ""+NumToStr(value19, numdec))
+		else if Display_MMValues = False AND Display_MMLevels = True then Text_SetString(mTxtVal[Count], ""+m8th[Count]);
+	   end;
+	end;
+
+HH_save = HH;
+LL_save = LL;
+
+
+
+end;
+
+
+
+{end;} {end check of prior HH/LL }
+

@@ -1,0 +1,89 @@
+inputs: High_Length( 20),Low_Length( 20 ),add1(150),add2(300),add3(450),add4(600),stopProfit(50);
+variables: var0( 0 ),var1( 0 ) ;
+variables: kb(0),eb(0),es(0),kbarb(0 ),ks(0),kbars(0) ;
+
+var0 = AverageFC( high, High_Length ) ;
+var1 = AverageFC( low, Low_Length) ;
+
+//============Condition==== ========================= ==========
+if high[1]>var0 and high>var0 and high[2]>var0 and high[1]>high and high[1]>high[2] then
+value1=highest(high,3);
+
+if low[1]<var1 and low<var1 and low[2]<var1 and low[1]<low and low[1]<low[2] then
+value2=lowest(low,3);
+
+//=============Entry/Exit===================== ==================
+if close crosses over value1 and high>var0 and eb=0 then begin
+buy next bar at market;
+kb=close;
+eb=1;
+es=0;
+kbarb=BarNumber;
+end;
+
+if close crosses under value2 and low<var1 and es=0 then begin
+sellshort next bar at market;
+ks=close;
+es=1;
+eb=0;
+kbars=BarNumber;
+end;
+
+
+//=============Add Shares=================== ==================
+//====buy
+if marketposition*currentcontracts=1 then
+buy("Add_Buy1") 1 shares next bar at kb+add1 stop;
+
+if marketposition*currentcontracts=2 then
+buy("Add_Buy2") 1 shares next bar at kb+add2 stop;
+
+
+if marketposition*currentcontracts=3 then
+buy("Add_Buy3") 1 shares next bar at kb+add3 stop;
+
+
+if marketposition*currentcontracts=4 then
+buy("Add_Buy4") 1 shares next bar at kb+add4 stop;
+
+
+
+
+//====sell
+
+if marketposition*currentcontracts=-1 then
+sellshort("Add_Sell1") 1 shares next bar at ks-add1 stop;
+
+if marketposition*currentcontracts=-2 then
+sellshort("Add_Sell2") 1 shares next bar at ks-add2 stop;
+
+if marketposition*currentcontracts=-3 then
+sellshort("Add_Sell3") 1 shares next bar at ks-add3 stop;
+
+if marketposition*currentcontracts=-4 then
+sellshort("Add_Sell4") 1 shares next bar at ks-add4 stop;
+
+
+
+
+//==============Exit Add====================== ==
+
+
+
+value11=BarNumber-kbarb;
+value12=BarNumber-kbars;
+
+value3=highest(high,barssinceentry )-stopProfit;
+value4=lowest(low,barssinceentry)+stopProfit;
+//print(kbarb,kbars);
+
+if marketposition*currentcontracts>=2 then sell from entry("add_buy1") next bar at value3 Stop;
+if marketposition*currentcontracts>=2 then sell from entry("add_buy2") next bar at value3 Stop;
+if marketposition*currentcontracts>=2 then sell from entry("add_buy3") next bar at value3 Stop;
+if marketposition*currentcontracts>=2 then sell from entry("add_buy4") next bar at value3 Stop;
+
+
+if marketposition*currentcontracts<=-2 then buytocover from entry("Add_Sell1")next bar at value4 stop;
+if marketposition*currentcontracts<=-2 then buytocover from entry("Add_Sell2")next bar at value4 stop;
+if marketposition*currentcontracts<=-2 then buytocover from entry("Add_Sell3")next bar at value4 stop;
+if marketposition*currentcontracts<=-2 then buytocover from entry("Add_Sell4")next bar at value4 stop;

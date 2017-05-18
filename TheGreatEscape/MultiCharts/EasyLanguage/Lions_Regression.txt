@@ -1,0 +1,223 @@
+// START Trading Strategy Study EasyLanguage Code
+
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+		
+inputs:UseMarketOrders(0),
+	ema83Price( Close ),
+	ema83Length( 83 ),
+	ema83Displace( 0 ) ;
+
+variables:
+	ema83AvgExp( 0 ) ;
+
+ema83AvgExp = XAverage( ema83Price, ema83Length ) ;
+
+{if ema83Displace >= 0 or CurrentBar > AbsValue( ema83Displace ) then 
+	begin
+	Plot2( ema83AvgExp, "ema83AvgExp" ) ;
+
+end;}
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+			
+Inputs:	Price(Close),
+		Length(6),
+		Displace(0),
+		Calculation_Frequency(-1);
+
+Vars:	LRSlope(0),
+		SumX(Length*(Length-1)*0.5+Length),
+		SumY(0),
+		SumXY(0),
+		SumX2(Length * ( Length - 1 ) * ( 2 * Length - 1 ) / 6 + Length * Length),
+		SumXSqr(SumX * SumX);
+
+Vars:	CalcNow(False),
+		IntrabarPersist Last_Price(0),
+		IntrabarPersist Next_Update_Time(0), 
+		IntrabarPersist NewBar(False);
+
+
+CalcNow = 	Calculation_Frequency = 0 or 
+			BarStatus(1) = 2 or
+			NewBar or
+			( Calculation_Frequency = -1 and Price <> Last_Price ) or
+			( Calculation_Frequency > 0 and Price <> Last_Price and ComputerDateTime >= Next_Update_Time );
+
+
+If CalcNow then Begin
+
+	If Length > 1 then Begin
+		SumY = Price;
+		SumXY = Price * Length;
+		For value1 = 1 to Length-1 Begin
+			SumY = SumY + Price[value1];
+			SumXY = SumXY + Price[value1]*(Length-value1);
+		end;
+
+		LRSlope = (Length * SumXY - SumX * SumY ) / ( Length * SumX2 - SumXSqr);
+	end;
+
+Last_Price = Price;
+	Next_Update_Time = ComputerDateTime + ( Calculation_Frequency * 0.000011574074 );
+end;
+
+{Plot1( LRSlope, "TanLinReg6" ) ;}
+
+NewBar = BarStatus(1) = 2;
+
+
+
+
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+
+                                             
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+				
+Inputs:	Price19(Close),
+		Length19(19),
+		Displace19(0),
+		Calculation_Frequency19(-1);
+
+Vars:	LRSlope19(0),
+		SumX19(Length19*(Length19-1)*0.5+Length19),
+		SumY19(0),
+		SumXY19(0),
+		SumX219(Length19 * ( Length19 - 1 ) * ( 2 * Length19 - 1 ) / 6 + Length19 * Length19),
+		SumXSqr19(SumX19 * SumX19);
+
+Vars:	CalcNow19(False),
+		IntrabarPersist Last_Price19(0),
+		IntrabarPersist Next_Update_Time19(0), 
+		IntrabarPersist NewBar19(False);
+
+
+CalcNow19 = 	Calculation_Frequency19 = 0 or 
+			BarStatus(1) = 2 or
+			NewBar19 or
+			( Calculation_Frequency19 = -1 and Price19 <> Last_Price19 ) or
+			( Calculation_Frequency19 > 0 and Price19 <> Last_Price19 and ComputerDateTime >= Next_Update_Time19 );
+
+
+If CalcNow19 then Begin
+
+	If Length19 > 1 then Begin
+		SumY19 = Price19;
+		SumXY19 = Price19 * Length19;
+		For value2 = 1 to Length19-1 Begin
+			SumY19 = SumY19 + Price19[value2];
+			SumXY19 = SumXY19 + Price19[value2]*(Length19-value2);
+		end;
+
+		LRSlope19 = (Length19 * SumXY19 - SumX19 * SumY19 ) / ( Length19 * SumX219 - SumXSqr19);
+	end;
+
+	Last_Price19 = Price19;
+	Next_Update_Time19 = ComputerDateTime + ( Calculation_Frequency19 * 0.000011574074 );
+end;
+
+{Plot1( LRSlope19, "TanLinReg19" ) ;}
+
+NewBar19 = BarStatus(1) = 2;
+
+
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Loss(1000);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+inputs:  TicksSL( 45 ), TicksBE(5) ;
+if timefilter then begin
+
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then Sell ("CloseLong") next bar at market;
+		if mp<0 then BuyToCover ("CloseShort") next bar at market;
+	end;	
+end;
+
+
+Condition5= timefilter and  profitlossfilter;
+
+
+
+
+
+
+
+
+inputs:
+	USEProfittarget(true), 
+	USEStoploss(true),
+	USEBreakEvnStoploss(true),
+	Profittarget(400),
+	Stoploss(400),
+	BreakEvnAmt( 100 ) ;
+
+if Condition5 then
+begin
+
+	If  Close[0] > ema83AvgExp 
+		and Close[1] < ema83AvgExp
+		and LRSlope19[0] > 0.001 
+		and LRSlope[0] > 0.001
+		then begin
+		
+		if UseMarketOrders=1 then Buy ("BuyMO") Next Bar at market
+		else
+			Buy ("Buy") Next Bar at open next bar limit;
+
+	end;
+
+	If  Close[0] < ema83AvgExp 
+		and Close[1] > ema83AvgExp
+		and LRSlope19[0] < -0.001 
+		and LRSlope[0] < -0.001
+		then  begin
+		
+		if UseMarketOrders=1 then SellShort ("SellMO") Next Bar at market
+		else
+			SellShort ("Sell") Next Bar at open next bar limit;
+
+	end;
+
+	If USEProfittarget = true then begin
+	setprofittarget(Profittarget);
+	end;
+
+	If USEStoploss = true then begin
+	setstoploss(Stoploss);
+	end;
+
+	If USEBreakEvnStoploss = true then begin
+	SetBreakeven( BreakEvnAmt ) ;
+	end;
+
+end;
+	
+// END Trading Strategy EasyLanguage Code

@@ -1,0 +1,97 @@
+{ PositionSizer Function
+        Written by: HamFon
+        Contact:        hamfon@hamfon.com
+        Date:           06/14/2004, first version 05/17/2004
+        Version:        1.08
+        Customer:       ebear
+        Status:         This code is released into the Public Domain.  It may be used or modified
+                                with no restrictions.
+        Purpose:        Calculates position size for a trade using one of several methods.
+                                Algorithms:
+                                1 = Fixed Fraction (based on Percentage input, as well as CurrentBalance and Margin)
+                            2 = Fixed Ratio (based on InvDelta, LotSize, CurrentBalance, and OriginalStake)
+                            3 = Percent Risk (based on CurrentBalance, RiskPct and StopLossAmount)
+                            4 = Percent Volatility (based on CurrentBalance and VolatilityPct)
+                                5 = Fixed Lot (always same size)
+                                6 = Fixed Margin Amount
+                                7 = Fixed Margin Amount with Trailing
+                                8 = Conservative Fixed
+}
+
+Input: AlgorithmNum(numeric);
+Input: OriginalStake(numeric); { how much money you started with }
+Input: MarginAmt(numeric); { margin for futures }
+Input: TradeLotSize(numeric); { Scaling adjustment - normally 1 for Futures, 100 for stocks }
+Input: MaxLotSize(numeric); { trade no more than this many contracts }
+Input: Factor(numeric); { level of conservative/aggressive trading }
+Input: IncludeOpenPL(truefalse); { do we include Profit/Loss from current open position in CurrentBalance? }
+Input: FixedFracPct#1(numeric); { for Fixed Fraction }
+Input: InvDelta#2(numeric); { for Fixed Ratio }
+Input: RiskPct#3(numeric); { for Percent Risk }
+Input: StopLossPct#3#4(numeric); { for Percent Risk and Percent Volatility }
+Input: VolatilityPct#4(numeric); { for Percent Volatility }
+Input: VolatilityScaling#4(numeric); { for Percent Volatility }
+Input: FixedLot#5(numeric); { for Fixed Lot }
+Input: IncMarginPct#6#7(numeric); { Percentage of current "base" where we increase the position size }
+Input: DecMarginPct#6#7(numeric); { Percentage of current "base" where we decrease the position size }
+Input: TrailingPct#7(numeric); { Percentage of current "base" where we temporarily decrease the position size }
+Input: MaxDrawDownBux#8(numeric); { Maximum allowed drawdown before changing position size }
+
+Var: CurrentBalance(0);
+Var: ATRPeriod(20);
+Var: FixedMarginLevel(1), FixedMarginBase(OriginalStake);
+
+Value9 = 0; { default }
+CurrentBalance = OriginalStake + NetProfit;
+if IncludeOpenPL then CurrentBalance = CurrentBalance + OpenPositionProfit;
+
+if AlgorithmNum = 1 then begin  { Fixed Fraction }
+        if MarginAmt > 0 then Value9 = CurrentBalance * FixedFracPct#1 / MarginAmt;
+end else if AlgorithmNum = 2 then begin { Fixed Ratio }
+        Value9 = 2 * (CurrentBalance - OriginalStake) * InvDelta#2 + .25 + TradeLotSize * TradeLotSize - 1;
+        if Value9 < 0 then Value9 = 0;
+        if Value9 < 1 then Value9 = 1 else Value9 = SquareRoot(Value9);
+end else if AlgorithmNum = 3 then begin { Percent Risk }
+        Value1 = C * BigPointValue * StopLossPct#3#4 / 100;
+        if Value1 <> 0 then Value9 = (RiskPct#3 / 100) * CurrentBalance / Value1;
+end else if AlgorithmNum = 4 then begin { Percent Volatility }
+        { calculate Volatility by comparing the current TR with the ATR }
+        Value1 = Average(TrueRange, ATRPeriod);
+        Value2 = C * BigPointValue * StopLossPct#3#4 / 100;
+        if Value1 > 0 then Value1 = TrueRange / Value1 * VolatilityScaling#4;
+        if Value1 > 0 and Value2 <> 0 then Value9 = ((VolatilityPct#4 / 100) / Value1) * CurrentBalance / Value2;
+end else if AlgorithmNum = 5 then begin { Fixed Lot }
+        Value9 = FixedLot#5;
+end else if AlgorithmNum = 6 then begin { Fixed Margin Amount }
+        if CurrentBalance >= FixedMarginBase * IncMarginPct#6#7 / 100 then begin
+                FixedMarginBase = FixedMarginBase * IncMarginPct#6#7 / 100;
+                FixedMarginLevel = FixedMarginLevel + 1;
+        end else if CurrentBalance <= FixedMarginBase * DecMarginPct#6#7 / 100 and FixedMarginLevel > 0 then begin
+                FixedMarginBase = FixedMarginBase * DecMarginPct#6#7 / 100;
+                FixedMarginLevel = FixedMarginLevel - 1;
+        end;
+        Value9 = FixedMarginLevel;
+end else if AlgorithmNum = 7 then begin { Fixed Margin Amount with Trailing }
+        if CurrentBalance >= FixedMarginBase * IncMarginPct#6#7 / 100 then begin
+                FixedMarginBase = FixedMarginBase * IncMarginPct#6#7 / 100;
+                FixedMarginLevel = FixedMarginLevel + 1;
+        end else if CurrentBalance <= FixedMarginBase * DecMarginPct#6#7 / 100 and FixedMarginLevel > 0 then begin
+                FixedMarginBase = FixedMarginBase * DecMarginPct#6#7 / 100;
+                FixedMarginLevel = FixedMarginLevel - 1;
+        end;
+        Value9 = FixedMarginLevel;
+        if CurrentBalance <= FixedMarginBase * TrailingPct#7 / 100 and Value9 > 1 then
+                Value9 = Value9 - 1;
+end else if AlgorithmNum = 8 then begin { Conservative Fixed }
+        Value9 = 0;
+        Value1 = MarginAmt + MaxDrawDownBux#8;
+        while Value1 < CurrentBalance begin
+                Value9 = Value9 + 1;
+                Value1 = Value1 + MarginAmt + MaxDrawDownBux#8 * (Value9 + 1);
+        end;
+end;
+
+if TradeLotSize > 0 then Value9 = Floor((Value9 + TradeLotSize / 2) / TradeLotSize) * TradeLotSize;
+if Value9 < 1 then Value9 = 0;
+if Value9 > MaxLotSize then Value9 = MaxLotSize;
+PositionSizer = Value9 * Factor;

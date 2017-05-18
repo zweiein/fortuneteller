@@ -1,0 +1,89 @@
+Input: TicksSL(25),FastMA(12),SlowMA(26),MacdMA(9), NCOs(4),NBars(50),Trailbar(6);
+Vars: ShotEntry(0),LongEntry(0),MVal(0),MAvg(0),MDif(0),Counter(0),TotalBars(0),HighestHi(0),LowestLo(0),TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+Array: CO[2,50](0);
+
+ 
+
+
+MVal=MACD(Close, FastMA, SlowMA);
+MAvg=XAverage(MACD(Close, FastMA,SlowMA),MacdMA);
+MDif=MVal-MAvg;
+
+if MDif Crosses Over 0 OR MDif Crosses Under 0 then Begin
+	For counter=0 to 49 begin
+		CO[0,50-Counter]=CO[0,49-Counter];
+		CO[1,50-Counter]=CO[1,49-Counter];
+		CO[2,50-Counter]=CO[2,49-Counter];
+	end;
+	CO[0,0]=BarNumber;
+	CO[1,0]=High;
+	CO[2,0]=Low;
+End;
+
+HighestHi=-1;
+LowestLo=9999;
+For counter=0 to NCOs-1 Begin
+
+	if CO[1,counter]>HighestHi then
+		HighestHi=CO[1,counter];
+	if CO[2,counter]<LowestLo then
+		LowestLo=CO[2,counter];		
+END;
+
+
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Loss(200);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue) ; 
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then Sell ("CloseLong") next bar at market;
+		if mp<0 then BuyToCover ("CloseShort") next bar at market;
+	end;
+	
+end;
+
+Condition5=  timefilter and  profitlossfilter;
+
+if condition5 then begin
+
+	Totalbars=BarNumber - CO[0,NCOs-1];
+	if TotalBars<NBars then begin
+		LongEntry=(HighestHi + (Average(TrueRange,4)*.5));
+		Buy ("Long") Next Bar at LongEntry Stop;
+		Sell Short ("Short") Next Bar at LowestLo - Average(TrueRange,4)*.5 Stop;
+	end;
+
+	Sell Short ("Reverse Long") next bar at Lowest(Low,TrailBar) Stop;
+	Buy("Reverse Short") next bar at Highest(High,TrailBar) Stop;
+
+end;
+

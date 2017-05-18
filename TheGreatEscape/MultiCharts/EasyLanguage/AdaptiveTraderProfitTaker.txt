@@ -1,0 +1,82 @@
+Inputs: K(0.8), Smooth(12), TakeProfitTicks(50), StopLossTicks(70); 
+vars: Brick(0) ,DN(0), UP(0), BricksUp(0), BricksDn(0); 
+variables:TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+Value1 = AvgTrueRange(Smooth) data1; 
+
+If BarNumber = 1 Then 
+Begin 
+	Up = H data1; 
+	Dn = L data1; 
+	Brick = K*(H data1-L data1); 
+End; 
+
+If BarNumber > 1 then 
+begin 
+	If C data1 > UP + Brick Then 
+	begin 
+		BricksUp = IFF(Brick = 0, 0, Floor((C - Up)/Brick) data1*Brick); 
+		UP = Up + BricksUp; 
+		Brick = K*Value1; 
+		DN = Up - Brick; BricksDn = 0; 
+	End; 
+
+	If C data1 < Dn - Brick Then 
+	begin 
+		BricksDn = IFF(Brick = 0, 0, Floor((Dn - C)/Brick) data1*Brick) ; 
+		Dn = Dn - BricksDn; Brick = K*Value1; 
+		Up = Dn + Brick; 
+		BricksUp = 0; 
+	End; 
+
+	{Trade Rules with or without short trades} 
+
+	// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+	inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+	variables: timefilter(false);
+	if Enable_Timefilter= 1 then begin	
+		if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+			timefilter=false
+		else 
+			timefilter=true;
+	end;
+	if Enable_Timefilter= 0 then timefilter=true;
+
+	// **************   Max loss/profit filter **********************
+	inputs:
+	Enable_ProfitLossFilter(1),Daily_Max_Loss(1000);
+	vars:
+	profitlossfilter(true),
+	todaynet(0),
+	yesterdaynet(0);
+	if date <> date[1] then begin
+		yesterdaynet = NetProfit;
+	end;
+	//if MarketPosition = 0 then begin
+		todaynet = NetProfit - yesterdaynet;
+	//nd;
+	profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+	if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+
+	if timefilter then begin
+		setstoploss(StoplossTicks*TickValue);
+		setprofittarget(TakeProfitTicks*TickValue);
+		if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+			if mp>0 then Sell ("CloseLong") next bar at market;
+			if mp<0 then BuyToCover ("CloseShort") next bar at market;
+		end;	
+	end;
+
+
+	Condition5= timefilter and  profitlossfilter;
+
+
+	if Condition5 then
+	begin
+		If Up < Up[1] then sellshort  next bar at market; 
+		If  Dn > Dn[1] then buy  next bar at market;
+	end;
+
+
+End;

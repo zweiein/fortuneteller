@@ -1,0 +1,49 @@
+using System;
+using System.Drawing;
+using System.Linq;
+using PowerLanguage.Function;
+using ATCenterProxy.interop;
+
+namespace PowerLanguage.Strategy {
+	public class SmallVictories_B : SignalObject {
+		public SmallVictories_B(object _ctx):base(_ctx)
+		{
+	        AtrShortLen = 1;
+            AtrLongLen = 20;
+			AtrIncreasing=1;
+		
+		}
+		private IOrderPriced buy_order;
+		private IOrderPriced sell_order;
+		
+		protected override void Create(){ 
+			// create variable objects, function objects, order objects etc.
+			buy_order = OrderCreator.Limit(new SOrderParameters(Contracts.Default, EOrderAction.Buy));
+			sell_order = OrderCreator.Limit(new SOrderParameters(Contracts.Default, EOrderAction.SellShort));
+		}
+		[Input]
+		public int AtrIncreasing{ get; set;}
+        [Input]
+        public int AtrShortLen { get; set; }
+        [Input]
+        public int AtrLongLen { get; set; }
+		
+		protected override void StartCalc() {
+			// assign inputs 
+		}
+		protected override void CalcBar(){
+			// strategy logic 
+			var AtrLongValue = this.AverageTrueRange(AtrLongLen);
+			var AtrShortValue = this.AverageTrueRange(AtrShortLen);
+			if (((PublicFunctions.DoubleGreater(AtrShortValue, AtrLongValue) && AtrIncreasing==1) || 
+				(PublicFunctions.DoubleLess(AtrShortValue, AtrLongValue) && AtrIncreasing==0)) &&
+				PublicFunctions.DoubleLess(Bars.Open[0], Bars.Close[0]) )
+				buy_order.Send((Bars.Open[0]+Bars.Close[0])/2);
+						
+			if (((PublicFunctions.DoubleGreater(AtrShortValue, AtrLongValue) && AtrIncreasing==1) || 
+				(PublicFunctions.DoubleLess(AtrShortValue, AtrLongValue) && AtrIncreasing==0)) &&
+				PublicFunctions.DoubleGreater(Bars.Open[0], Bars.Close[0]) )
+				sell_order.Send((Bars.Open[0]+Bars.Close[0])/2);
+		}
+	}
+}

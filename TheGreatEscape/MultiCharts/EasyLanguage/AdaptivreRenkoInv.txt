@@ -1,0 +1,85 @@
+Inputs: K(1.2), Smooth7
+vars: Brick(0) ,DN(0), UP(0), BricksUp(0), BricksDn(0); 
+
+Value1 = AvgTrueRange(Smooth); 
+
+If BarNumber = 1 Then 
+Begin 
+Up = H; 
+Dn = L; 
+Brick = K*(H-L); 
+End; 
+
+If BarNumber > 1 then 
+begin 
+If C > UP + Brick Then 
+begin 
+BricksUp = IFF(Brick = 0, 0, Floor((C - Up)/Brick)*Brick); 
+UP = Up + BricksUp; 
+Brick = K*Value1; 
+DN = Up - Brick; BricksDn = 0; 
+End; 
+
+If C < Dn - Brick Then 
+begin 
+BricksDn = IFF(Brick = 0, 0, Floor((Dn - C)/Brick)*Brick); 
+Dn = Dn - BricksDn; Brick = K*Value1; 
+Up = Dn + Brick; 
+BricksUp = 0; 
+End; 
+
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Profit(10000),Daily_Max_Loss(50);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+inputs:  TicksSL( 25) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue) ; 
+	
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+{Trade Rules with or without short trades} 
+
+Condition5= timefilter and  profitlossfilter;
+vars: l1(c),l2(c);
+l1=C;
+l2=C;
+
+
+If Condition5 and Up > Up[1] then sellshort next bar at l1 limit; 
+If Condition5 and Dn < Dn[1] then buy next bar at l2 limit; 
+
+
+End;

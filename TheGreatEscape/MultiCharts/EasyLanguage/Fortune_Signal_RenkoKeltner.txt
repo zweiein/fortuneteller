@@ -1,0 +1,42 @@
+[IntrabarOrderGeneration = false]
+
+vars: barn(0);
+barn=BarNumber data1;
+
+// ************  Keltner Filter ************
+inputs:Keltner_Length(13), Keltner_AtrMultiplier(1.5);
+variables: Keltner_DirectionValue(0), Keltner_ValueUp(0),Keltner_ValueDown(0);
+
+Keltner_ValueUp=Fortune_Keltner(1,Keltner_Length,Keltner_AtrMultiplier)data1;
+Keltner_ValueDown=Fortune_Keltner(2,Keltner_Length,Keltner_AtrMultiplier)data1;
+if (c data1 Crosses over Keltner_ValueUp)then Keltner_DirectionValue= 1 else if (c data1 crosses under Keltner_ValueDown) then Keltner_DirectionValue=-1;	
+
+
+
+inputs: PositionBasis( false ), TicksSL( 35 ) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+if TicksSL>0 then begin
+	if PositionBasis then
+		SetStopPosition
+	else
+		SetStopShare ; 
+	SetStopLoss(TicksSL*TickValue) ;
+end; 
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1545),TimeOfDay_ExclHoursFrom(1550),TimeOfDay_ExclHoursTo(1710);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+if Keltner_DirectionValue=1 and TimeOfDay_TradingAllowed and barn>barn[1] then
+	Buy ( "KeltLE" ) next bar at market ;
+if Keltner_DirectionValue=-1 and TimeOfDay_TradingAllowed and barn>barn[1] then
+	Sell Short ( "KeltSE" ) next bar at market ;

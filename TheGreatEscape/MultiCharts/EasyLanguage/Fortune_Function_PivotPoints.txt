@@ -1,0 +1,40 @@
+
+input:
+	StartCalcTime(NumericSimple),
+	EndCalcTime(NumericSimple),	
+	RR1(NumericRef),
+	RR2(NumericRef),
+	RR3(NumericRef),
+	SS1(NumericRef),
+	SS2(NumericRef),
+	SS3(NumericRef),					
+	PP(NumericRef),	
+	RR1TL(NumericRef),			
+	RR2TL(NumericRef),			
+	RR3TL(NumericRef),			
+	SS1TL(NumericRef),			
+	SS2TL(NumericRef),			
+	SS3TL(NumericRef),							
+	PPTL(NumericRef);
+	
+variables: DayHi(-99999), DayLo (99999), HaveTLs(false)	, SessClose(0);
+
+	if Date<>Date[1] then begin
+		
+		PP = (DayHi + DayLo + SessClose[1])/3;
+		RR1 = PP*2 - DayLo;
+		RR2= PP + DayHi - DayLo;
+		RR3 = RR2 + DayHi - DayLo;
+		SS1 = PP*2 - DayHi;
+		SS2= PP - DayHi + DayLo;
+		SS3 = SS2- DayHi + DayLo;
+		
+		DayHi=-99999;
+		DayLo=+ 999999;
+		HaveTLs=false;	
+	end;
+	if Time > STartCalcTime and Time <=EndCalcTime then begin
+		If High>=DayHi then DayHi=High;
+		if Low<=DayLo then DayLo=low;
+		SessClose=Close;
+	end;

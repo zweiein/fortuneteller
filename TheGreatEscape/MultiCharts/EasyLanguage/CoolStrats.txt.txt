@@ -1,0 +1,112 @@
+inputs:
+    ccilength ( 14 ), turningpoint ( 100 ), strength ( 1 ),
+    Lookback(2), BarSize(5),
+    TimeOffset(100), MaxLosingTrades(4), DailyProfitTargetPips(50), TimeStop(20),
+    ProfitTarget1(40), BreakEven(40), Offset(2), AccountSize(10000), RiskPerTrade(0.01);
+Vars:
+    cciv(0), up(0), down(0), 
+    SessionTime2 (0), TimeToTrade2(0), Triggered(0),
+    ind(1), SessionHi(-999999), SessionLo (+999999), 
+    TradeChart(1), TrendChart(2), Penetrated(false), LongTrigger(False), ShortTrigger(false),
+    AvgMaxExtension(0), MaxExtension(0), MaxHiLo(0),
+    NoLosingTrades(0), Pips4Day (0), PipsThisTrade(0), 
+    enterprice(0), stoploss(0), stopsize(0), BE(0), PT(0), ts(0), 
+    RiskAmount(0), Quantity(0), oneTick(0), OffsetTick(0), trend(0);
+
+if CurrentBar = 1 Then begin    
+    cleardebug;
+    oneTick = MinMove / PriceScale;
+    OffsetTick = (BarSize + Offset) * oneTick;
+    AvgMaxExtension = 0;
+end;
+
+trend = 0;
+
+cciv = CCI(ccilength); 
+
+if cciv crosses below turningpoint and C = L then up = Highest(High, strength);
+if cciv crosses above -turningpoint and C = H then down = Lowest(Low, strength);
+
+//Work out session time
+input:SessionTime( 100);//CalcSessionTime;
+input: TimeToTrade(100);//CalcLondonOpen;
+
+If time >= SessionTime and SessionTime > time[1] then begin     
+    NoLosingTrades = 0;
+    Pips4Day = 0;
+end;
+
+//Session Performance Analysis
+if marketposition = 0 and Triggered = 1 then begin
+    Triggered = 0;
+    if positionprofit(1) < 0 then NoLosingTrades = NoLosingTrades + 1;
+    PipsThisTrade = positionprofit(1) / maxcontracts(1) / oneTick;
+    Pips4Day = Pips4Day + PipsThisTrade;
+    if Pips4Day > DailyProfitTargetPips then messagelog(NumToStr(date,0) + " # Pips 4 Day: " + NumToStr(pips4day, 0) + " # Losing Trades: " + NumToStr(NoLosingTrades, 0));
+    MaxExtension = MaxExtension / oneTick;
+    AvgMaxExtension = MaxExtension + AvgMaxExtension;
+end;
+
+LongTrigger = close[1]  > open[1];
+ShortTrigger = close[1] < open[1];
+
+if marketposition = 0 and NoLosingTrades < MaxLosingTrades and time > TimeToTrade and 
+     Pips4Day < DailyProfitTargetPips then begin
+    if LongTrigger and close > up then begin
+        enterprice = up + OffsetTick;
+        stoploss = up - OffsetTick;
+        ts = stoploss - OffsetTick;
+        MaxExtension = enterprice;
+        MaxHiLo = enterprice;
+        stopsize = (enterprice - stoploss) / oneTick;    
+        RiskAmount = (AccountSize + i_ClosedEquity) * RiskPerTrade;
+        Quantity =2;// RiskAmount / stopsize * 10000;
+      //  Buy Quantity contracts Next Bar at enterprice stop;
+    end 
+    else if ShortTrigger  and close < down then begin
+        enterprice = down - OffsetTick;
+        stoploss = down + OffsetTick;    
+        ts = stoploss + OffsetTick;    
+        MaxExtension = enterprice;    
+        MaxHiLo = enterprice;
+        stopsize = (stoploss - enterprice) / oneTick;
+        RiskAmount = (AccountSize + i_ClosedEquity) * RiskPerTrade;
+        Quantity =2;// RiskAmount / stopsize * 10000;
+       // sellshort Quantity Contracts Next Bar At enterprice stop;    
+    end;
+end;
+
+
+if marketposition = 1 then begin
+    Triggered = 1;
+    PT = entryprice + ProfitTarget1 * oneTick;
+    BE = entryprice + BreakEven * oneTick;
+    
+    ts = iff(ts < close  - offsettick, close  - offsettick, ts);
+    Sell ("Long Target 1") Quantity contracts next bar At PT limit; // Profit Target 1 
+
+    SetStopPosition; // Forces the built-in stop functions to be applied on the entire position basis (all open contracts) 
+    Sell ("StopLoss L") All Contracts next Bar At stoploss Stop; // initial stop 
+  //  Sell ("Trailing L")All Contracts next Bar At ts Stop; // trailing stop 
+    //Sell ("Trailing Stop") All Contracts next Bar At ts Stop; // trailing stop 
+    
+    if high > MaxHiLo then MaxHiLo = high;
+    MaxExtension = maxhilo - enterprice;    
+end
+else if marketposition = -1 then begin
+    Triggered = 1;
+    
+    PT = entryprice - ProfitTarget1 * oneTick;
+    BE = entryprice - BreakEven * oneTick;
+
+    ts = iff(ts > close  + offsettick, close + offsettick, ts);
+
+    Buytocover ("Short Target 1") Quantity contracts next bar At PT limit; // Profit Target 1
+
+    SetStopPosition; // Forces the built-in stop functions to be applied on the entire position basis (all open contracts) 
+    Buytocover ("StopLoss S") All Contracts next Bar At stoploss Stop; // initial stop
+   // Buytocover ("Trailing S") All Contracts next Bar At ts Stop; // trailing stop
+    
+    if low < MaxHiLo then MaxHiLo = low;
+    MaxExtension = enterprice - maxhilo;
+end; 

@@ -1,0 +1,83 @@
+[IntrabarOrderGeneration = false]
+inputs:  TicksSL( 100 ), ExitMaType(1), shares(2) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+inputs:RSILookback(2),
+LongRSIThreshold(5),
+LongMAExitPeriod(5), 
+LongRegimeLookback(200),
+ShortRSIThreshold(95),
+ShortMAExitPeriod(5), 
+ShortRegimeLookback(200);
+	
+Variables: {---------------------------------------------------------------------------------}
+RSI_Value(0),
+LongMA200(0), 
+LongExitMA(0),
+ShortMA200(0), 
+ShortExitMA(0); 
+
+{ === START OF MAIN PROGRAM ================================================================} 
+
+RSI_Value = RSI(Close,RSILookback);
+LongMA200=  Average(Close, LongRegimeLookback);
+ShortMA200=  Average(Close, ShortRegimeLookback);
+
+if ExitMaType=1 then begin
+	LongExitMA=  Average(Close, LongMAExitPeriod);
+	ShortExitMA=  Average(Close, ShortMAExitPeriod);
+end
+else if ExitMaType=2 then begin
+	LongExitMA=  XAverage(Close, LongMAExitPeriod);
+	ShortExitMA=  XAverage(Close, ShortMAExitPeriod);
+end;
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1555),TimeOfDay_NonTradingHoursTo(1700);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Profit(4000),Daily_Max_Loss(500);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+
+
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue) ; 
+
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+
+Condition5= timefilter and  profitlossfilter;
+
+if Condition5 then begin
+	If ( RSI_Value >= ShortRSIThreshold) And ( Close < ShortMA200) Then sellshort("RSI Sell") vShares shares next bar at market;
+	If ( MarketPosition <  0 ) And ( Close < ShortExitMA) Then buytocover("MA Short Exit") next bar at market;
+	If ( RSI_Value <= LongRSIThreshold) And ( Close > LongMA200) Then buy("RSI Buy") vShares shares next bar at market;	
+	If ( MarketPosition >  0 ) And ( Close > LongExitMA) Then sell("MA Long Exit") next bar at market;
+end;

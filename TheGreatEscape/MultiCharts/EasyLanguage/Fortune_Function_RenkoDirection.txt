@@ -1,0 +1,25 @@
+inputs: Count( numericsimple ), MinBodyRatio(numericsimple);
+
+variables: var0( 0 ), result(0), ratio(0) ;
+
+var0 = 0 ;
+result=0;
+for Value1 = 0 to Count-1
+    begin
+    value2=absvalue(H[Value1]- L[Value1] );
+    ratio=iff(value2=0,1,absvalue(C[Value1]- O[Value1] ) / value2);
+    
+    condition1 = C[Value1]> O[Value1] and ratio>MinBodyRatio;
+    condition2 = C[Value1]< O[Value1] and ratio>MinBodyRatio;
+    if condition1 then 
+        var0 = var0 + 1
+    else if condition2 then
+        var0 = var0 - 1;
+    end ; 
+
+if var0<0 and absvalue(var0)=Count then
+    result=-1
+else if var0>0 and var0=Count then 
+    result=1;
+    
+Fortune_RenkoDirection=result ;

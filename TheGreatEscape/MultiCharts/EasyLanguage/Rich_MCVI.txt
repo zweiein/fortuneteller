@@ -1,0 +1,48 @@
+Input:
+SMA_Period(200),
+MCVI_Period(15),
+BuyLine(-0.50),
+SellLine(.41),
+LongHoldPeriod(35),
+ShortHoldPeriod(25);
+
+Variables:
+BullMarket(false),
+BuySignal(false),
+SellSignal(false),
+MCVI_Value(0);
+
+
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1645),TimeOfDay_ExclHoursFrom(1650),TimeOfDay_ExclHoursTo(1800);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+
+BullMarket = Close > Average( Close, SMA_Period );
+MCVI_Value = MCVI( MCVI_Period );
+
+If ( MCVI_Value crosses below BuyLine ) Then BuySignal = true
+Else BuySignal = false;
+
+If ( MCVI_Value crosses above SellLine ) Then SellSignal = true
+Else SellSignal = false;
+
+if TimeOfDay_TradingAllowed then begin
+
+	If ( BullMarket ) And ( BuySignal ) Then Buy("LE") next bar at market
+	Else If ( BullMarket <> true ) And ( SellSignal ) Then SellShort("SE") next bar at market;
+
+	If MP = 1 and BarsSinceEntry = LongHoldPeriod Then Sell("N Bar Exit") next bar at market;
+	If MP = -1 and BarsSinceEntry = ShortHoldPeriod Then Buytocover(" N Bar Exit") next bar at market;
+
+end;

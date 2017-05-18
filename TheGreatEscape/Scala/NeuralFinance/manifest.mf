@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+X-COMMENT: Main-Class will be added automatically by build
+Main-Class: fortuneteller.neural.engine.startup.Main
+Class-Path: lib/log4j-1.2.15.jar lib/scala-xml-2.11.0-M4.jar lib/joda-time-2.1.jar lib/joda-convert-1.1.jar lib/commons-net-3.0.1.jar lib/commons-pool-1.5.4.jar lib/commons-dbcp-1.2.2.jar  lib/encog-core-3.2.0-SNAPSHOT.jar lib/config-0.3.1.jar lib/akka-actor_2.11-2.3.5.jar lib/scala-library-2.11.2.jar
+

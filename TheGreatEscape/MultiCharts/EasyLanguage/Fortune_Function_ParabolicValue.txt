@@ -1,0 +1,9 @@
+inputs: 
+	AfStep( numericsimple ),                                                    
+	AfLimit( numericsimple ) ;                                                      
+
+variables: var0( 0 ), var1( 0 ), var2( 0 ), var3( 0 ), var4( "" ) ,sl(0);
+
+Value1 = ParabolicSAR( AfStep, AfLimit, var0, var1, var2, var3 ) ;
+Fortune_ParabolicValue=var0;
+

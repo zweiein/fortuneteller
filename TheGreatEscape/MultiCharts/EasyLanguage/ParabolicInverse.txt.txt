@@ -1,0 +1,129 @@
+[IntrabarOrderGeneration = false]
+inputs:  AfStep( 0.02 ), AfLimit( 0.2 ),TradeType(1) ;
+variables:  var0( 0 ), var1( 0 ), var2( 0 ), var3( 0 );
+
+
+Value1 = ParabolicSAR( AfStep, AfLimit, var0, var1, var2, var3 )data1 ;
+
+if var2 = -1 and var2[1]<>-1 and TradeType=1 then Buy ( "ParLE" ) next bar at market;
+if var2 = -1 and TradeType=2 then SellShort ( "ParSE" ) next bar at market ;
+if var2 = 1 and var2[1]<>1 and TradeType=1 then SellShort  ( "ParSE" ) next bar at market ;
+if var2 = 1 and TradeType=2 then Buy ( "ParLE2" ) next bar at market ;
+
+
+
+Function:
+ParabolicSAR
+inputs: 
+	AfStep( numericsimple ),                                                    
+	AfLimit( numericsimple ),                                                    
+	oParCl( numericref ),                                                             
+	oParOp( numericref ),                              
+	oPosition( numericref ),                                           
+	oTransition( numericref ) ;                                                      
+
+variables: 
+	var0( 0 ), 
+	var1( 0 ), 
+	var2( 0 ) ;
+
+if CurrentBar = 1 then
+	begin
+	oParOp = High ;
+	oPosition = -1 ;
+	var0 = High ;
+	var1 = Low ;
+	end ;
+
+oTransition = 0 ;
+if High > var0 then var0 = High ;
+				                                        
+if Low  < var1 then var1 = Low ;
+				                                      
+
+if oPosition = 1 then
+				                                     
+	begin
+	if Low <= oParOp then
+				                                                 
+		begin
+		oPosition = -1 ;
+		oTransition = -1 ;
+				                                                          
+		oParCl = var0 ;
+				                                     
+		var0 = High ;
+				                                               
+		var1  = Low ;
+				                                              
+		var2 = AfStep ;
+				                        
+		oParOp = oParCl + var2 * ( var1 - oParCl ) ;
+				                                               
+		if oParOp < High    then oParOp = High ;
+				                                                    
+		if oParOp < High[1] then oParOp = High[1] ;
+				                              
+		end
+	else
+				                                             
+		begin
+		oParCl = oParOp ;
+				          
+		condition1 = var0 > var0[1] and var2 < AfLimit ;
+		if condition1 then
+				                                                     
+			var2 = MinList( var2 + AfStep, AfLimit ) ;
+				                         
+		oParOp = oParCl + var2 * ( var0 - oParCl ) ;
+				                                       
+		if oParOp > Low    then oParOp = Low ;
+				                                                   
+		if oParOp > Low[1] then oParOp = Low[1] ;
+				                             
+		end ;
+	end
+else
+				                                      
+	begin
+	if High >= oParOp then
+				                                                 
+		begin
+		oPosition = 1 ;
+		oTransition = 1 ;
+				                                                          
+		oParCl = var1 ;
+				                                     
+		var0 = High ;
+				                                               
+		var1  = Low ;
+				                                              
+		var2 = AfStep ;
+				                        
+		oParOp = oParCl + var2 * ( var0 - oParCl ) ;
+				                                               
+		if oParOp > Low    then oParOp = Low ;
+				                                                   
+		if oParOp > Low[1] then oParOp = Low[1] ;
+				                             
+		end
+	else
+				                                               
+		begin
+		oParCl = oParOp ;
+
+		condition1 = var1 < var1[1] and var2 < AfLimit ;				                                                                   
+		if condition1 then
+				                                                     
+			var2 = MinList( var2 + AfStep, AfLimit ) ;
+				                         
+		oParOp = oParCl + var2 * ( var1 - oParCl ) ;
+				                                       
+		if oParOp < High    then oParOp = High ;
+				                                                    
+		if oParOp < High[1] then oParOp = High[1] ;
+				                              
+		end ;
+	end ;
+
+ParabolicSAR = 1 ;

@@ -1,0 +1,45 @@
+.col-1, .col-2, .col-3, .col-4, .col-5, .col-6{ float:left}
+/*======= width =======*/
+.main{margin:0 auto; text-align:left; width:980px; }
+
+/*======= header =======*/
+#header {height:151px;  background:url(images/top.gif) top left repeat-x}
+
+/*======= index.html =======*/
+#page1 #content .col-1{ width:209px; margin-right:34px}
+#page1 #content .col-2{ width:212px}
+#page1 #content .col-3{ width:435px; margin-right:48px}
+#page1 #content .col-4{ width:480px} 
+#page1 #content .col-4 .col-1{ width:204px; margin-right:39px}
+#page1 #content .col-4 .col-2{ width:204px}
+/*======= index-1.html =======*/
+#page2 #content .col-1{ width:305px; margin-right:55px}
+#page2 #content .col-2{ width:603px}
+/*======= index-2.html =======*/
+#page3 #content .col-1{ width:209px; margin-right:34px}
+#page3 #content .col-2{ width:212px}
+#page3 #content .col-3{ width:630px; margin-right:56px}
+#page3 #content .col-4{ width:270px} 
+/*======= index-3.html =======*/
+#page4 #content .col-1{ width:315px; margin-right:45px}
+#page4 #content .col-2{ width:593px}
+/*======= index-4.html =======*/
+#page5 #content .col-1{ width:625px; margin-right:50px}
+#page5 #content .col-2{ width:265px}
+/*======= index-5.html =======*/
+#page6 #content .col-1{ width:209px; margin-right:34px}
+#page6 #content .col-2{ width:212px}
+#page6 #content .col-3{ width:480px; margin-right:28px}
+#page6 #content .col-4{ width:435px} 
+#page6 #content .col-3 .col-1{ width:204px; margin-right:39px}
+#page6 #content .col-3 .col-2{ width:204px}
+/*======= index-6.html =======*/
+#page7 #content .col-1{ width:315px; margin-right:45px}
+#page7 #content .col-2{ width:593px}
+#page7 #content .col-3{ width:310px; margin-right:0}
+#page7 #content .col-4{ width:264px}
+#page7 #content .col-5{ width:165px; margin-right:50px}
+#page7 #content .col-6{ width:165px}
+
+/*======= footer =======*/
+#footer { height:92px; }

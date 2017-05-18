@@ -1,0 +1,92 @@
+[IntrabarOrderGeneration = false]
+inputs:  TicksSL( 40 ) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+inputs:  AfStep( 0.02 ), AfLimit( 0.02 ),AfStep2( 0.02 ), AfLimit2( 0.02 ), TradeType(0),price((h+l)/2), a1(10), a2(2), a3(30),b1(5),b2(2),b3(30), DirType(2) ;
+variables:  var0( 0 ), var1( 0 ), var2( 0 ), var3( 0 ), dir(0);
+variables:  var10( 0 ), var11( 0 ), var12( 0 ), var13( 0 );
+
+Value1 = ParabolicSAR( AfStep, AfLimit, var0, var1, var2, var3 ) ;
+Value2 = ParabolicSAR( AfStep2, AfLimit2, var10, var11, var12, var13 ) ;
+Value3 = AdaptiveMovAvg( price, a1, a2, a3 ) ;
+Value4 = AdaptiveMovAvg( price, b1, b2, b3);
+
+if DirType=1 then
+begin
+  if value3>value3[1] then dir=1 else dir=-1;
+end
+else if DirType=2 then
+begin
+  if value4>value3 then dir=1 else dir=-1;
+end;
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1555),TimeOfDay_NonTradingHoursTo(1700);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Profit(4000),Daily_Max_Loss(500);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue) ; 
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+
+Condition5= timefilter and  profitlossfilter;
+
+if Condition5 then begin
+
+
+
+	if dir=1 and TradeType<>2 and  var2 = -1 then Buy ( "ParLE" ) next bar at var1 stop ;
+	if dir=-1 and TradeType<>1  and  var12 = 1 then SellShort ( "ParSE" ) next bar at var11 stop ;
+
+inputs: ATRLength( 10 ), NumATRs( 3 ) ;
+variables: varu0( 0 ), varu1( 0 ), varu2( 0 ) ;
+
+varu0 = AvgTrueRange( ATRLength ) * NumATRs ;
+varu1 = MarketPosition ;
+
+if varu1 = 1 then 
+	begin
+	condition1 = varu1[1] <> 1 or High > varu2 ;
+	if condition1 then 
+		varu2 = High ;
+	Sell ( "AtrLX" ) next bar at varu2 - varu0 stop ;
+	end
+else if varu1 = -1 then 
+	begin
+	condition2 = varu1[1] <> -1 or Low < varu2 ;
+	if condition2 then 
+		varu2 = Low ;
+	Buy To Cover ( "AtrSX" ) next bar at varu2 + varu0 stop ;
+
+end;
+	
+	
+end;

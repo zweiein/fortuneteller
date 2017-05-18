@@ -1,0 +1,75 @@
+[IntrabarOrderGeneration = true]
+inputs:  LPrice( Low data2), BuyLeftStrength( 2), BuyRightStrength( 2),HPrice( High data2), SellLeftStrength( 2), SellRightStrength( 2)  ;
+vars: barnum(0);
+barnum=BarNumber data2;
+ 
+
+inputs: PositionBasis( false ), TicksSL( 35 ), BreakEv(10) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1545),TimeOfDay_ExclHoursFrom(1550),TimeOfDay_ExclHoursTo(1710);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Loss(500);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+
+
+if  TimeOfDay_TradingAllowed then begin
+	if PositionBasis then
+		SetStopPosition
+	else
+		SetStopShare ; 
+	SetStopLoss(TicksSL*TickValue) ;
+	SetBreakEven(BreakEv*TickValue);
+
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+
+Variables: // Exit Specific
+	
+	intrabarpersist LongExitLevel(0),
+	intrabarpersist ShortExitLevel(0);
+
+if TimeOfDay_TradingAllowed and profitlossfilter then begin
+
+
+	condition1 = PivotLowVS( 1, LPrice, BuyLeftStrength, BuyRightStrength, BuyRightStrength+ 1 ) data2 <> -1 ;
+	if condition1 and barnum>barnum[1] then begin
+		Buy ( "PivExtLE" ) next bar at market ;      // Always reverse position if already short
+	end;
+		
+	condition2 = PivotHighVS( 1, HPrice, SellLeftStrength, SellRightStrength, SellRightStrength+ 1 ) data2 <> -1 ;
+	if condition2 and barnum>barnum[1] then begin
+		Sell Short ( "PivExtSE" ) next bar at market ;
+	end;
+end;
