@@ -1,8 +1,7 @@
 [IntrabarOrderGeneration = false]
-inputs:  TicksSL( 10);
+inputs:  TicksSL( 10), ProfitTicks(0);
 Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
 //   Data 1 = 500 tick chart. Data 2 Heiken Minute chart
-
 
 
 // ************  TimeOfDay Filter (TRUE when trading is allowed)************
@@ -26,10 +25,8 @@ yesterdaynet(0);
 if date <> date[1] then begin
 	yesterdaynet = NetProfit;
 end;
-//if MarketPosition = 0 then begin
-	todaynet = NetProfit - yesterdaynet;
-//nd;
-profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+todaynet = NetProfit - yesterdaynet;
+profitlossfilter= -Daily_Max_Loss< todaynet ;
 if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
 
 
@@ -37,6 +34,7 @@ if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
 if timefilter then begin
 	SetStopShare ;
 	SetStopLoss(TicksSL*TickValue) ; 
+	if ProfitTicks>0 then SetProfitTarget(ProfitTicks*TickValue);
 
 	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
 		if mp>0 then sell next bar at market;
@@ -60,7 +58,7 @@ if timefilter and  profitlossfilter then begin
 	  if c[DirectionIndex] data2<o[DirectionIndex] data2 then
          	buytocover("Cover") this bar at Close
          else
-	 	 buy("Buy") this bar at close;
+	 	buy("Buy") this bar at close;
 	end;
 
 end;
