@@ -1,0 +1,85 @@
+[IntrabarOrderGeneration = true]
+inputs:  TicksSL( 45 ), SlopeExit(false), RsiPrice(Close), RegLenPrice(Close) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+
+
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Loss(900);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+
+
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue) ; 
+
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+input: SlopeLen(15);
+vars:SlopeVal(0);
+SlopeVal= LinearRegSlopeFC(RegLenPrice,SlopeLen)data1; 
+Condition5= timefilter and  profitlossfilter;
+
+vars: barn(0),  barn2(0);
+
+barn=barNumber ;
+
+vars: upbar(0),lowbar(0);
+
+upbar=absvalue(h[1]-h[0]);
+lowbar=absvalue(l[1]-l[0]);
+
+if true  then begin 
+
+if Condition5 then begin
+
+        
+
+	If ( lowbar<upbar and  lowbar[1]>upbar[1]) then
+	begin
+		if c>o then 
+	  		sellshort("Short") next bar at market
+	  	else buy next bar at market;
+	end;
+
+
+	If ( lowbar>upbar  and  lowbar[1]<upbar[1]) then 
+	begin
+		if c<o then
+	 	 buy("Buy") next bar at market
+	 	else sellshort next bar at market;
+	end;
+end;
+end;
+
