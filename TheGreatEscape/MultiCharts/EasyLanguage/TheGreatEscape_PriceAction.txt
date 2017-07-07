@@ -46,27 +46,30 @@ if timefilter then begin
 	end;	
 end;
 
-input: SlopeLen(15);
-vars:SlopeVal(0);
-SlopeVal= LinearRegSlopeFC(RegLenPrice,SlopeLen)data1; 
+
 Condition5= timefilter and  profitlossfilter;
 
-vars: barn(0),  barn2(0);
-
-barn=barNumber ;
 
 vars: upbar(0),lowbar(0);
 
 upbar=absvalue(h[1]-h[0]);
 lowbar=absvalue(l[1]-l[0]);
 
-if true  then begin 
+
+
+
+vars: lowtest(0), hightest(0);
+if BarNumber>2 then lowtest=l[1];//(l[1]+l[2])/2;
+if BarNumber>2 then hightest=h[1];//(h[1]+h[2])/2;
 
 if Condition5 then begin
 
-        
+       //sellshort("1") next bar at Average(l[1],l[2]) stop;
+      // buy("2") next bar at Average(h[1],h[2]) stop;
+	if lowtest>0 and c>lowtest and c<hightest  then sellshort("1") next bar at lowtest stop;
+	if hightest>0 and c<hightest and c>lowtest then buy("2") next bar at hightest stop;
+	If ( lowbar<upbar) then 
 
-	If ( lowbar<upbar and  lowbar[1]>upbar[1]) then
 	begin
 		if c>o then 
 	  		sellshort("Short") next bar at market
@@ -74,12 +77,10 @@ if Condition5 then begin
 	end;
 
 
-	If ( lowbar>upbar  and  lowbar[1]<upbar[1]) then 
+	If ( lowbar>upbar ) then 
 	begin
 		if c<o then
 	 	 buy("Buy") next bar at market
 	 	else sellshort next bar at market;
 	end;
 end;
-end;
-
