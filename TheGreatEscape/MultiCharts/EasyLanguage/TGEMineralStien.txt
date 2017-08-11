@@ -1,0 +1,74 @@
+[IntrabarOrderGeneration = true]
+inputs:  TicksSL( 30 ),TicksProfit(300);
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Loss(900);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+
+
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue) ; 
+	setprofittarget(TicksProfit*TickValue);
+
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+
+
+Condition5= timefilter and  profitlossfilter;
+
+
+inputs: EntryModel(1), JumpInsurance(true);
+
+if Condition5 then begin
+
+	 if JumpInsurance then begin
+		 if mp>0  then sell("ShortIns") next bar at LowestFC(low,4) stop;
+		 if mp<0 then buytocover("BuyIns") next bar at HighestFC(high, 4) stop;
+	 end;
+
+	if c<o then begin
+		if EntryModel=1 and l>l[2] then buy ("Buy1") next bar at market;
+		if EntryModel=2 and l>h[2] then buy ("Buy2") next bar at market;
+	end;
+
+	if c>o then begin
+		if EntryModel=1 and h<h[2] then sellshort("Short1") next bar at market;
+		if EntryModel=2 and h<l[2] then sellshort("Short2") next bar at market;
+
+	end;
+
+
+end;
