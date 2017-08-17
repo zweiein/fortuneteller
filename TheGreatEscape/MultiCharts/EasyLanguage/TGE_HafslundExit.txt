@@ -3,18 +3,15 @@ inputs:  TicksSL( 30 ),TicksProfit(85);
 Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
 
 
-inputs: UseLoserFilter(false), UseAdx(true), AdxLev(50),AdxPer(14);
 
+//Filters for stop trading on bad days...
+inputs: UseLoserFilter(false), UseAdx(true), AdxLev(40),AdxPer(14);
  vars: AdxVal(0), AdxFilter(true), LoserFilter(false);
- 
- AdxVal=ADX(AdxPer);
- 
+AdxVal=ADX(AdxPer);
 AdxFilter= UseAdx=true and AdxVal>AdxLev;
-
 LoserFilter=UseLoserFilter=true and positionprofit(1)<0 and OpenEntryProfit<0;// UseAdx=true and AdxVal>AdxLev;
-
-vars: NoTrading(false);
-NoTrading=AdxFilter or LoserFilter;
+vars: TradingConditionsOk(true);
+TradingConditionsOk=AdxFilter=false and LoserFilter=false;
 
 // ************  TimeOfDay Filter (TRUE when trading is allowed)************
 inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
@@ -61,24 +58,14 @@ if NoTrading and mp<>0 then begin
 		if mp<0 then buytocover next bar at market;
 end;
 
+vars: TradingAllowed(false);
 
-Condition5= timefilter and  profitlossfilter;
-
-
-
+TradingAllowed= timefilter and  profitlossfilter and TradingConditionsOk;
 
 
-//Condition9=mp<=0 or OpenEntryProfit>0;
-
-if Condition5 and NoTrading=false then begin
-
+if TradingAllowed then begin
 
 	if c>(h[2]) then sellshort next bar at C[1] + 1 point limit;
 	if c<(l[2]) then buy next bar at C[1] - 1 point limit;
-	//buy next bar at h limit;
-	//sellshort next bar at l limit;
-
-
-
 
 end;
