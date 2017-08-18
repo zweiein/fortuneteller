@@ -3,7 +3,6 @@ inputs:  TicksSL( 30 ),TicksProfit(85);
 Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
 
 
-
 //Filters for stop trading on bad days...
 inputs: UseLoserFilter(false), UseAdx(true), AdxLev(40),AdxPer(14);
  vars: AdxVal(0), AdxFilter(true), LoserFilter(false);
@@ -12,6 +11,8 @@ AdxFilter= UseAdx=true and AdxVal>AdxLev;
 LoserFilter=UseLoserFilter=true and positionprofit(1)<0 and OpenEntryProfit<0;// UseAdx=true and AdxVal>AdxLev;
 vars: TradingConditionsOk(true);
 TradingConditionsOk=AdxFilter=false and LoserFilter=false;
+
+
 
 // ************  TimeOfDay Filter (TRUE when trading is allowed)************
 inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
@@ -53,19 +54,21 @@ if timefilter then begin
 	end;	
 end;
 
-if NoTrading and mp<>0 then begin
+
+
+vars: TradingAllowed(false);
+TradingAllowed= timefilter and  profitlossfilter and TradingConditionsOk;
+
+// Close position if conditions (ADX etc) are not OK
+if TradingConditionsOk=false and timefilter and mp<>0 then begin
 		if mp>0 then sell next bar at market;
 		if mp<0 then buytocover next bar at market;
 end;
 
-vars: TradingAllowed(false);
+input: OrderEntryOffset(1);
 
-TradingAllowed= timefilter and  profitlossfilter and TradingConditionsOk;
-
-
+// Do not enter new trades if conditions and P&L are against it
 if TradingAllowed then begin
-
-	if c>(h[2]) then sellshort next bar at C[1] + 1 point limit;
-	if c<(l[2]) then buy next bar at C[1] - 1 point limit;
-
+	if c>(h[2]) then sellshort next bar at C[1] + OrderEntryOffset point limit;
+	if c<(l[2]) then buy next bar at C[1] - OrderEntryOffset point limit;
 end;
