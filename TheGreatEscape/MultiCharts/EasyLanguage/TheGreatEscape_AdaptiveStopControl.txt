@@ -1,0 +1,49 @@
+
+[IntrabarOrderGeneration = true]
+inputs:  TicksSL( 45 ), ActivateTakeProfit(true),ActivateExit(true)  ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+
+
+
+input: HighBar(h), LowBar(l), TakeProfitFactor(0.5);
+variables: LastBarSize(0),LastBarTicks(0),TakeProfitTicks(0),CurrentDeviationTicks(0);
+LastBarSize=absvalue(HighBar[1]-LowBar[1]);
+LastBarTicks=LastBarSize*PriceScale;
+TakeProfitTicks=LastBarTicks*TakeProfitFactor;
+
+input: StopBarFactor(0.5);
+if mp<0 then begin
+	
+	if C>H[1] then begin
+		CurrentDeviationTicks=absvalue(C-H[1])*PriceScale;
+	     if ActivateExit and CurrentDeviationTicks>(LastBarTicks*StopBarFactor) and OpenEntryPrice<>C  then buytocover("ExitS") next bar at market;
+
+	end;	
+end 
+else if mp>0 then begin
+	if C<L[1] then begin
+		CurrentDeviationTicks=absvalue(L[1]-C)*PriceScale;		
+	      if ActivateExit and CurrentDeviationTicks>(LastBarTicks*StopBarFactor) and OpenEntryPrice<>C then sell("ExitB") next bar at market;
+	end;
+
+end;
+
+
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue); // Absolute stoploss
+	if (ActivateTakeProfit) then setprofittarget(TakeProfitTicks*TickValue);
+end;
