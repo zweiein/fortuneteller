@@ -4,8 +4,6 @@ AtrFactor(1.7), ExhIndex(1),Cfac(0.6), TicksSL(15) ;
 Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
 
 
-
-
 // ************  TimeOfDay Filter (TRUE when trading is allowed)************
 inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
 variables: timefilter(false);
@@ -44,8 +42,8 @@ if timefilter then begin
 		if mp<0 then buytocover next bar at market;
 	end;	
 end;
-vars: AtrValue(0);
 
+vars: AtrValue(0);
 Condition5= timefilter and  profitlossfilter;
 Condition4=absvalue(h-l)>Cfac*absvalue(o-c);
 if Condition5 then begin
@@ -56,8 +54,6 @@ if Condition5 then begin
 	end;
 	If (AtrValue[ExhIndex]*AtrFactor <= averagetruerange(ExhIndex) and C>O and Condition4)  Then 
 	begin
-		//sellshort this bar at close;
-
 		sellshort next bar at market;
 	end;
 end;

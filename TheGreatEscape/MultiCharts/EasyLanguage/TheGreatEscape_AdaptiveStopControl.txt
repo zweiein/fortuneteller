@@ -15,14 +15,10 @@ if Enable_Timefilter= 1 then begin
 end;
 if Enable_Timefilter= 0 then timefilter=true;
 
-
-
-
-input: HighBar(h), LowBar(l), TakeProfitFactor(0.5);
+input: HighBar(h), LowBar(l);
 variables: LastBarSize(0),LastBarTicks(0),TakeProfitTicks(0),CurrentDeviationTicks(0);
 LastBarSize=absvalue(HighBar[1]-LowBar[1]);
 LastBarTicks=LastBarSize*PriceScale;
-TakeProfitTicks=LastBarTicks*TakeProfitFactor;
 
 input: StopBarFactor(0.5);
 if mp<0 then begin
@@ -30,7 +26,6 @@ if mp<0 then begin
 	if C>H[1] then begin
 		CurrentDeviationTicks=absvalue(C-H[1])*PriceScale;
 	     if ActivateExit and CurrentDeviationTicks>(LastBarTicks*StopBarFactor) and OpenEntryPrice<>C  then buytocover("ExitS") next bar at market;
-
 	end;	
 end 
 else if mp>0 then begin
@@ -38,12 +33,5 @@ else if mp>0 then begin
 		CurrentDeviationTicks=absvalue(L[1]-C)*PriceScale;		
 	      if ActivateExit and CurrentDeviationTicks>(LastBarTicks*StopBarFactor) and OpenEntryPrice<>C then sell("ExitB") next bar at market;
 	end;
-
 end;
 
-
-if timefilter then begin
-	SetStopShare ;
-	SetStopLoss(TicksSL*TickValue); // Absolute stoploss
-	if (ActivateTakeProfit) then setprofittarget(TakeProfitTicks*TickValue);
-end;
