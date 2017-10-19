@@ -1,0 +1,8 @@
+inputs:
+	Price(numericseries ),
+	EffRatioLength( NumericSimple),
+	FastAvgLength( NumericSimple ),
+	SlowAvgLength( NumericSimple) ,
+	SmootheLength(NumericSimple); 
+
+SmoothedAdapMA=jthma(AdaptiveMovAvg( Price, EffRatioLength, FastAvgLength, SlowAvgLength) ,SmootheLength );
