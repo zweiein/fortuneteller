@@ -1,0 +1,98 @@
+[IntrabarOrderGeneration = false]
+
+
+{ Dan Shirley's "Meander" Strategy
+  From ActiveTrader Magazine, September 2002, page 84 - by Dan Shirley
+  Dan Shirley's work, based on Thomas Stridsman "Trading Systems That Work" - McGraw Hill 2001
+
+	Entered and adapted by: HamFon
+	Contact:	ncrowle@sprintmail.com
+	Date:		8/08/2002, original 08/08/2002
+	Revision:	1.01
+}
+
+Inputs: Mlt (1), MALength (34),StDevPer(5),TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+Value1 = Stddev ((H - l), StDevPer) * Mlt;
+Value2 = Stddev ((h - L), StDevPer) * Mlt;
+
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Loss(1000);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+inputs:  TicksSL( 45 ), TicksBE(5) ;
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue) ; 
+	setbreakeven(TicksBE*TickValue);
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then Sell ("CloseLong") next bar at market;
+		if mp<0 then BuyToCover ("CloseShort") next bar at market;
+	end;	
+end;
+
+Input: AdjTicks(0), AdjType(0);
+vars :BuyPrice(0), BuyPriceAdj(0),SellPrice(0), SellPriceAdj(0);
+
+Condition5= timefilter and  profitlossfilter;
+
+if Condition5=true then 
+begin
+
+       BuyPrice=C-Value2;
+       SellPrice=C+Value1;
+   	BuyPriceAdj=BuyPrice+AdjTicks*TickSize;
+       SellPriceAdj=SellPrice-AdjTicks*TickSize;
+
+
+	if MarketPosition = 0 then begin
+		Value3 = AverageFC (C, MALength) - AverageFC (C[1], MALength);
+		if Value3 > 0 then begin
+		       if AdjType<>2 then BuyPrice=BuyPriceAdj;
+		       if AdjType<>1 then SellPrice=SellPriceAdj;
+			Buy ("Long Scalp") next bar at BuyPrice limit;
+			Sell ("LS") next bar at SellPrice limit;
+		end else if Value3 < 0 then begin
+		       if AdjType<>1 then BuyPrice=BuyPriceAdj;
+		       if AdjType<>2 then SellPrice=SellPriceAdj;
+			Sell Short ("Short Scalp") next bar SellPrice  limit;
+			Buy to Cover ("SS") next bar at BuyPrice limit;
+		end;
+	end;
+	if AdjType<>1 then begin
+		SellPrice=SellPriceAdj;
+		BuyPrice=BuyPriceAdj;
+	end;
+	if  MarketPosition = 1 then
+		Sell ("LS2") next bar at SellPrice  limit
+	else if  MarketPosition = -1 then
+		Buy to Cover ("SS2") next bar at BuyPrice  limit;
+
+
+end;
