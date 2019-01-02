@@ -1,0 +1,170 @@
+[IntrabarOrderGeneration = false]
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+Inputs: Price(Close), Length(5), F(6);
+Vars: AvgVal(0), S(0), R(0), SC(0), RC(0);
+
+AvgVal = Average(Price, Length);
+RC = RC + 1;
+SC = SC + 1; 
+
+Inputs: UseBricks(1), K(0.5), Smooth(8); 
+vars: Brick(0) ,DN(0), UP(0), BricksUp(0), BricksDn(0); 
+
+input :AtrIncreasing(1),AtrShortLen(2), AtrLongLen(15);
+vars: atrs(0),atrl(0), atrtst(false);
+atrs=AverageTrueRange(AtrShortLen);
+atrl=AverageTrueRange(AtrLongLen);
+atrtst=(atrs>atrl and AtrIncreasing=1) or (atrs<atrl and  AtrIncreasing=0) ;
+
+
+Value1 = AvgTrueRange(Smooth); 
+
+If BarNumber = 1 Then 
+Begin 
+Up = H; 
+Dn = L; 
+Brick = K*(H-L); 
+End; 
+
+If BarNumber > 1 then 
+begin 
+If C > UP + Brick Then 
+begin 
+BricksUp = IFF(Brick = 0, 0, Floor((C - Up)/Brick)*Brick); 
+UP = Up + BricksUp; 
+Brick = K*Value1; 
+DN = Up - Brick; BricksDn = 0; 
+End; 
+
+If C < Dn - Brick Then 
+begin 
+BricksDn = IFF(Brick = 0, 0, Floor((Dn - C)/Brick)*Brick); 
+Dn = Dn - BricksDn; Brick = K*Value1; 
+Up = Dn + Brick; 
+BricksUp = 0; 
+End; 
+End;
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Profit(10000),Daily_Max_Loss(1000);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+//inputs:  TicksSL( 40 ) ;
+
+
+if timefilter then begin
+	SetStopShare ;
+//	SetStopLoss(TicksSL*TickValue) ; 
+	
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+{Trade Rules with or without short trades} 
+
+Condition5= timefilter and  profitlossfilter;
+
+
+
+
+
+
+vars: BuySig(false), SellSig(false);
+BuySig=false;
+SellSig=False;
+IF CurrentBar > 1  Then Begin
+IF Close Crosses Below AvgVal AND Close > S* (1+(F/100)) AND R <> 0 Then Begin
+BuySig=true;//buy Next Bar at Market;
+S = Low;
+SC = 0;
+End
+Else Begin
+IF Close Crosses Below S AND R <> 0 Then Begin
+BuySig=true;//buy Next Bar at Market;
+S = Low;
+SC = 0;
+End;
+End;
+
+IF Close Crosses Above AvgVal AND Close < R * (1+(F/100)) AND S <> 0 Then Begin
+SellSig=true;//sellshort Next Bar at Market;
+R = High;
+RC = 0;
+End
+Else Begin
+IF Close Crosses Above R AND S <> 0 Then Begin
+SellSig=true;//sellshort Next Bar at Market;
+R = High;
+RC = 0;
+End;
+End;
+IF Close > AvgVal Then Begin
+IF High >= R Then Begin
+R = High;
+RC = 0;
+End;
+End;
+
+IF Close < AvgVal Then Begin
+IF Low <= S OR S = -1 Then Begin
+S = Low;
+SC = 0;
+End;
+End;
+
+
+
+
+
+
+
+End;
+
+if Condition5  then begin
+
+	if atrtst and c>o  then buy next bar at (c+o)/2 limit;
+	if atrtst and c<o  then sellshort next bar at (c+o)/2 limit;
+	
+	If UseBricks=1 and  Up > Up[1] then sellshort next bar at market; 
+	If UseBricks=1 and  Dn < Dn[1] then buy next bar at market; 
+
+
+	if BuySig then buy next bar at market;
+	if SellSig then sellshort next bar at market;
+	
+	if mp>0 and  barssinceentry(0)>0 and O<((h[1]+l[1])/2) then sellshort("RXL") next bar at market;
+	if mp<0 and barssinceentry(0)>0 and O>((h[1]+l[1])/2) then buy("RXS") next bar at market;	
+end;
+
+
+
+
+
+
