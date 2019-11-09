@@ -44,7 +44,7 @@ GEM
     multipart-post (2.0.0)
     naught (1.1.0)
     rack (1.5.5)
-    rack-protection (1.5.3)
+    rack-protection (1.5.5)
       rack
     rack-test (0.6.3)
       rack (>= 1.0)
@@ -90,9 +90,11 @@ GEM
       thread_safe (~> 0.1)
     unf (0.1.4)
       unf_ext
+    unf_ext (0.0.7.1)
     unf_ext (0.0.7.1-x64-mingw32)
 
 PLATFORMS
+  ruby
   x64-mingw32
 
 DEPENDENCIES
