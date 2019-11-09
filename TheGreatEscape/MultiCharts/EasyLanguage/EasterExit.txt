@@ -1,0 +1,43 @@
+
+[IntrabarOrderGeneration = false]
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+input:ProfitFactor(0.5);
+variables: mt(0), ptticks(0), mtt(0);
+mt=absvalue(h[1]-l[1]);
+mtt=mt*PriceScale;
+mtt=mt/TickSize;
+ptticks=mtt*ProfitFactor;
+if timefilter then begin
+	SetStopShare ;
+	setprofittarget(ptticks*TickValue);
+end;
+
+
+input: TicksSL(45), DefTicksSL(25);
+vars: LoserFilter(true);
+LoserFilter= (positionprofit(1)<0 or barssinceentry>1) and OpenEntryProfit<0;// UseAdx=true and AdxVal>AdxLev;
+if LoserFilter then
+begin
+	SetStopLoss(DefTicksSL*TickValue) ; 
+     // if mp>0 then sellshort next bar at market 
+     // else if mp<0 then buy next bar at market;
+end else begin          
+	SetStopLoss(TicksSL*TickValue) ; 
+
+end;
+
+if mp>0 then sell next bar at l[barssinceentry] stop;
+if mp<0 then buytocover next bar at h[barssinceentry] stop;

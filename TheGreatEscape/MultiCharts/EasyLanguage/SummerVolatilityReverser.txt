@@ -1,0 +1,79 @@
+
+[IntrabarOrderGeneration = false]
+inputs:AdxLim(30), AdxPer(5),Length( 3 ), NumATRs( 0.3 ),TicksSL( 0 ) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+Vars: MyPos(1), MyProfit(1);
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Profit(4000),Daily_Max_Loss(500);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+var:adxok(true);
+
+
+if adx(AdxPer)>AdxLim then adxok=false else adxok=true;
+
+if timefilter then begin
+	if TicksSL>0 then begin
+		//SetStopShare ;
+		//SetStopLoss(TicksSL*TickValue) ; 
+	end;
+	
+	if adxok=false then begin
+		if mp>0 then sell ("AdxSell") 1 contracts next bar at market;
+		if mp<0 then buytocover ("AdxCover") 1 contracts next bar at market;
+	end
+	else if (Enable_ProfitLossFilter=1 and profitlossfilter=false) then begin
+		if mp>0 then sell ("LossSell") 1 contracts next bar at market;
+		if mp<0 then buytocover ("LossCover") 1 contracts  next bar at market;
+	end;
+end;
+
+if mp>0 then begin
+ 	MyPos=mp;
+ 	If OpenEntryProfit>0 then MyProfit=1 else MyProfit=-1;
+ end
+ else if mp<0 then begin
+ 	 MyPos=mp ;
+ 	If OpenEntryProfit>0 then MyProfit=1 else MyProfit=-1;
+end else begin
+	 MyPos=MyPos[1];
+	 MyProfit=MyProfit[1];
+
+end;
+vars: bpr(0), spr(0), buytrigger(true), selltrigger(true);
+spr= Close + AvgTrueRange( Length ) * NumATRs ;
+bpr= Close - AvgTrueRange( Length ) * NumATRs ;
+buytrigger=c>o and h>h[1];//(mp=0 or bpr>OpenEntryPrice);
+selltrigger=c<o and l<l[1];//(mp=0 or spr<OpenEntryPrice);
+
+Condition5= timefilter and  profitlossfilter;
+if Condition5 and adxok then begin
+	if selltrigger and (MyPos<0 and MyProfit<0)=false and mp>=0 then SellShort ( "GoShort" ) 1 contracts next bar at spr limit ;
+	if buytrigger and (MyPos>0 and MyProfit<0) =false and mp<=0 then Buy ( "GoLong" ) 1 contracts next bar at bpr limit ;
+end;

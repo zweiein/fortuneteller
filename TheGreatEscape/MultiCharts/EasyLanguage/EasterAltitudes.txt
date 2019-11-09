@@ -1,0 +1,143 @@
+
+
+[IntrabarOrderGeneration = false]
+
+ // ************  TimeOfDay Filter ************
+inputs: TimeOfDay_FilterDef(8888888888),En_TimeOfDayFilter(1),TimeOfDay_ExitPosHoursFrom(1645),TimeOfDay_ExclHoursFrom(1650),TimeOfDay_ExclHoursTo(1800);
+variables: TimeOfDay_TradingAllowed(true),TimeOfDay_ExitWindow(false);
+ if En_TimeOfDayFilter= 1 then begin	
+	      if  Time>=TimeOfDay_ExclHoursFrom and Time <=TimeOfDay_ExclHoursTo then
+	      TimeOfDay_TradingAllowed=false
+	      else
+	      TimeOfDay_TradingAllowed=true;
+	       if  Time>=TimeOfDay_ExitPosHoursFrom and Time <=TimeOfDay_ExclHoursFrom then
+	      TimeOfDay_ExitWindow=true
+	      else
+	   	TimeOfDay_ExitWindow=false;
+end;
+
+ // ************  Max Loss Pr Day Filter ************
+ inputs: MaxLossPerDay_FilterDef(8888888888),En_MaxLossPerDay(1),MaxLoss_Dollar(500);
+      variables: MaxLoss_Triggered(false),MaxLoss_TodayNet(0), MaxLoss_YesterdayNet(0);
+      if En_MaxLossPerDay= 1 then begin	
+	if date <> date[1] then begin
+		MaxLoss_YesterdayNet = NetProfit;
+	end;
+	//if MarketPosition = 0 then begin
+		MaxLoss_TodayNet = NetProfit - MaxLoss_YesterdayNet;
+	//end;
+	if -MaxLoss_Dollar > MaxLoss_TodayNet then
+		MaxLoss_Triggered=true
+	else
+		MaxLoss_Triggered=false;
+      end;
+
+
+//inputs: PositionBasis( false ), TicksSL( 35 ), FloorTics(25),TicksProfit(45); ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+if MaxLoss_Triggered then begin
+
+   if  mp>0 then sellshort next bar at market;
+   if  mp<0 then buy  next bar at market;	 	
+
+
+end;
+if TimeOfDay_TradingAllowed then begin
+	//if PositionBasis then
+	//	SetStopPosition
+	//else
+	//	SetStopShare ;
+	// SetStopLoss(TicksSL*TickValue) ; 
+	// SetBreakeven( FloorTics*TickValue) ;
+	// SetProfitTarget(TicksProfit*TickValue);
+	 
+end;
+if TimeOfDay_TradingAllowed and MaxLoss_Triggered=false then
+begin
+vars: ProfitReverse(true);
+
+vars: bidprice(0), askprice(0);
+
+bidprice=lowest(l,50)-20 points ;
+askprice=highest(h,50)+ 20 points;
+
+if PosTradeProfit(1,0)<0 then ProfitReverse=false    else ProfitReverse=true;
+inputs: Length( 1 ), NumATRs( 0.8 ), entryfac(1) ;
+condition1=c>(c[1]+o[1])/2;
+condition2=c<(c[1]+o[1])/2;
+
+	 if mp>0 and h<h[1] then begin //barssinceentry>0 then begin//entryprice<(l[1]+l[1])/2 then begin //absvalue(h[1]-entryprice)<absvalue(c[0]-l[1]) then begin
+	   askprice= (h+c)/2;
+	 end else
+	 if mp<0 and l>l[1] then begin //barssinceentry>0 then begin//entryprice>(H[1]+h[1])/2 then begin//absvalue(entryprice-l[1])<absvalue(h[1]-c[0]) then begin
+	   bidprice= (c+l)/2;
+	 end else
+	 begin
+	 
+		if ProfitReverse then
+		begin
+ 		if  condition1 then askprice= c - entryfac point;
+	  	if  condition2  then bidprice= c +entryfac point ;
+		 end else begin
+  		if  condition2 then askprice=  c - entryfac point;
+  		if  condition1 then bidprice= c + entryfac point;				 
+		 end;	 	 
+	 end;
+	
+	var: HeiBid(0), HeiAsk(0);
+
+	if c>o then
+	begin
+	 HeiAsk=h;
+	  HeiBid=c;
+	end;
+	 
+	if o>=c then
+	begin
+	HeiBid=l;
+	HeiAsk=c;
+	end;
+	 
+	 
+	 input: ApplyStopOrder(1) ;
+	 
+vars: price1(0), price2(0);
+price1=Close - AvgTrueRange( Length ) * NumATRs;
+price2=Close + AvgTrueRange( Length ) * NumATRs ;
+//sellshort next bar at minlist(price1, bidprice) limit;
+//buy next bar at maxlist(price2, askprice) limit;
+askprice=minlist(askprice, price2);	 
+bidprice=maxlist(bidprice, price1);	 
+askprice=minlist(askprice, HeiAsk);	 
+bidprice=maxlist(bidprice, HeiBid);
+ if c<o and c[1]<o[1] then
+ begin
+ 	sellshort("TrendAsk") 1 contract next bar at askprice limit;
+ end else if c>o and c[1]>o[1] then
+ begin
+ 	 buy("TrendBid") 1 contract next bar at bidprice limit;
+ end else
+ begin
+ 	 buy("MaxBid") 1 contract next bar at bidprice limit;
+  sellshort("MinAsk")1 contract  next bar at askprice limit;
+
+ end;
+ 
+
+
+
+	if ApplyStopOrder=1 then begin
+		if mp>0 then sell ("BOut") next bar at l[barssinceentry] stop;
+		if mp<0 then buytocover ("SOut") next bar at h[barssinceentry] stop;
+	end;
+	if ApplyStopOrder=2 then begin
+		if mp>0 then sellshort ("FBRev") 1 contract  next bar at l stop;//o[barssinceentry] stop;
+		if mp<0 then buy ("FSRev") 1 contract next bar at h stop;//o[barssinceentry] stop;
+	end;
+	if ApplyStopOrder=3 then begin
+		if mp>0 then sellshort ("FBRev2") 1 contract  next bar at o stop;//o[barssinceentry] stop;
+		if mp<0 then buy ("FSRev2") 1 contract next bar at o stop;//o[barssinceentry] stop;
+       end;
+end;
