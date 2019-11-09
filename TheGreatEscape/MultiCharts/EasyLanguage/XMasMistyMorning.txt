@@ -1,0 +1,136 @@
+[IntrabarOrderGeneration = false]
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+input: 
+	ema_fast_len (144),
+	ema_slow_len (169),
+	rsi_len (14),
+	rsi_overbought (65),
+	rsi_oversold (35),
+	includeselling(0)
+	;
+
+var:
+	intrabarpersist ema_fast (0),
+	intrabarpersist ema_slow (0),
+	intrabarpersist ema_xup_bar (0),
+	intrabarpersist ema_xdn_bar (0),
+	intrabarpersist rsi_val (0),
+	intrabarpersist last_rsi_oversold_dt (0),
+	intrabarpersist last_rsi_overbought_dt (0),
+	intrabarpersist mp (0), 
+	intrabarpersist ep (0),
+	intrabarpersist exitbar (0)
+	;
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+
+mp = marketposition(0);
+ep = entryprice(0);
+
+ema_fast = xaverage( close, ema_fast_len);
+ema_slow = xaverage( close, ema_slow_len);
+rsi_val = rsi( close, rsi_len);
+
+if ema_fast crosses above ema_slow then
+	ema_xup_bar = barnumber;
+
+if ema_fast crosses below ema_slow then
+	ema_xdn_bar = barnumber;
+
+if rsi_val <= rsi_oversold then
+	last_rsi_oversold_dt = date;
+if rsi_val >= rsi_overbought then
+	last_rsi_overbought_dt = date;
+
+if timefilter then 
+begin
+
+input:ProfitFactor(0.5);
+variables: mt(0), ptticks(0), mtt(0);
+mt=absvalue(h[1]-l[1]);
+mtt=mt*PriceScale;
+mtt=mt/TickSize;
+ptticks=mtt*ProfitFactor;
+setprofittarget(ptticks*TickValue);
+
+input:overly(5);
+if mp = 0 then
+begin
+	if mp[1] <> 0 then
+		exitbar = barnumber;
+
+	if ema_xup_bar > exitbar 
+		and ema_fast > ema_slow 
+		and (datetojulian( date) - datetojulian( last_rsi_oversold_dt) <= overly) then
+	begin
+		buy 1 contracts next bar at ema_fast + minmove point stop;
+	end;
+	
+	if includeselling=1 then begin
+	if ema_xdn_bar > exitbar 
+		and ema_fast < ema_slow 
+		and (datetojulian( date) - datetojulian( last_rsi_overbought_dt) <= overly) then
+	begin
+		sellshort 1 contracts next bar at ema_fast - minmove point stop;
+	end;
+	
+	end;
+end;
+input :mmove(20), lback(5);
+if mp = 1 then
+begin
+	sell("CloseL") next bar at Highest(High,lback) limit;
+	
+	sell  next bar at ep - (mmove * minmove point) stop;
+	//if currentcontracts = 32 then 
+	//begin
+	//	sell 1 contract next bar at ep + (50 * minmove point) limit;
+	//	sell 1 contract next bar at ep + (100 * minmove point) limit;
+	//end;
+	if currentcontracts = 1 then
+	begin
+	//	sell 15 contract next bar at ep + (100 * minmove point) limit;
+	//	if ema_fast < ema_slow then
+		//	sell 1 contract next bar at market;
+	end;
+end;
+
+if mp = -1 then
+begin
+      buytocover ("CloseS") next bar at Lowest(Low,lback) limit;
+		
+      buytocover next bar at ep + (mmove * minmove point) stop;
+	//if currentcontracts = 72 then 
+	//begin
+	//	buytocover 1 contract next bar at ep - (50 * minmove point) limit;
+		//buytocover 1 contract next bar at ep - (100 * minmove point) limit;
+	//end;
+	if currentcontracts = 71 then
+	begin
+		//buytocover  1 contract next bar at ep - (100 * minmove point) limit;
+		//if ema_fast > ema_slow then
+		//	buytocover 1 contract next bar at market;
+	end;
+end;
+
+
+
+
+
+
+
+
+end;
+
+
