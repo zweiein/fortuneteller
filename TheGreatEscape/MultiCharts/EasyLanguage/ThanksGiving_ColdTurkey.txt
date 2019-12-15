@@ -180,10 +180,39 @@ if Enable_Timefilter= 1 then begin
 end;
 if Enable_Timefilter= 0 then timefilter=true;
 
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Profit(4000),Daily_Max_Loss(500);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
 
 
+if timefilter then begin
+	if TicksSL>0 then begin
+		//SetStopShare ;
+		//SetStopLoss(TicksSL*TickValue) ; 
+	end;
+	
+	if (Enable_ProfitLossFilter=1 and profitlossfilter=false) then begin
+		if mp>0 then sell ("LossSell") 1 contracts next bar at market;
+		if mp<0 then buytocover ("LossCover") 1 contracts  next bar at market;
+	end;
+end;
 
-if timefilter then 
+
+Condition5= timefilter and  profitlossfilter;
+
+
+if Condition5 then 
 begin
 
 input:ProfitFactor(0.5), TicksSL(45);;
@@ -220,7 +249,16 @@ buy ("BuyEma") Next Bar at open next bar limit;
 
 
 
-
+//QExit stop
+input: StopBars(1);
+if OpenEntryProfit<0 then begin
+if mp<0 then begin
+	if barssinceentry>=StopBars then buytocover ("BackoffShort") next bar at market;
+end 
+else if mp>0 then begin
+	if barssinceentry>=StopBars then sell ("BackoffLong") next bar at market;
+end;
+end;
 
 
 
