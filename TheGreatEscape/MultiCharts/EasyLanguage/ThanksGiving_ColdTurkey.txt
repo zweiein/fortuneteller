@@ -1,0 +1,229 @@
+[IntrabarOrderGeneration = false]
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+inputs:
+LPPeriod( 30 ), K1( .85 ), K2( .4 ) ;
+variables:
+alpha1( 0 ), HP( 0 ), a1( 0 ), b1( 0 ), 
+c1( 0 ), c2( 0 ), c3( 0 ), Filt( 0 ), Peak(0), 
+X( 0 ), Quotient1( 0 ), Quotient2( 0 ) ;
+//Highpass filter cyclic components
+//whose periods are shorter than 
+//100 bars
+alpha1 = ( Cosine( .707 * 360 / 100 )
++ Sine ( .707 * 360 / 100 ) - 1 ) /
+Cosine( .707 * 360 / 100 ) ;
+HP = ( 1 - alpha1 / 2 )*( 1 - alpha1 /
+2 )*( Close - 2 * Close[1] + Close[2] )
++ 2 * ( 1 - alpha1 ) * HP[1] 
+- ( 1 - alpha1 ) * ( 1 - alpha1 ) * HP[2] ;
+//SuperSmoother Filter
+a1 = expvalue( -1.414 * 3.14159 / LPPeriod ) ;
+b1 = 2 * a1 * Cosine( 1.414*180 / LPPeriod ) ;
+c2 = b1 ;
+c3 = -a1 * a1 ;
+c1 = 1 - c2 - c3 ;
+Filt = c1 * ( HP + HP[1] ) / 2 + c2 * Filt[1]
++ c3 * Filt[2] ;
+//Fast Attack - Slow Decay Algorithm
+Peak = .991 * Peak[1] ;
+If AbsValue( Filt ) > Peak then 
+Peak = AbsValue( Filt ) ;
+//Normalized Roofing Filter
+if Peak <> 0 then 
+X = Filt / Peak ;
+Quotient1 = ( X + K1 ) / ( K1 * X + 1 ) ;
+Quotient2 = ( X + K2 ) / ( K2 * X + 1 ) ;
+
+
+		
+inputs:
+	ema83Price( Close ),
+	ema83Length( 83 ),
+	ema83Displace( 0 ) ;
+
+variables:
+	ema83AvgExp( 0 ) ;
+
+ema83AvgExp = XAverage( ema83Price, ema83Length ) ;
+
+{if ema83Displace >= 0 or CurrentBar > AbsValue( ema83Displace ) then 
+	begin
+	Plot2( ema83AvgExp, "ema83AvgExp" ) ;
+
+end;}
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+			
+Inputs:	Price(Close),
+		Length(6),
+		Displace(0),
+		Calculation_Frequency(-1);
+
+Vars:	LRSlope(0),
+		SumX(Length*(Length-1)*0.5+Length),
+		SumY(0),
+		SumXY(0),
+		SumX2(Length * ( Length - 1 ) * ( 2 * Length - 1 ) / 6 + Length * Length),
+		SumXSqr(SumX * SumX);
+
+Vars:	CalcNow(False),
+		IntrabarPersist Last_Price(0),
+		IntrabarPersist Next_Update_Time(0), 
+		IntrabarPersist NewBar(False);
+
+
+CalcNow = 	Calculation_Frequency = 0 or 
+			BarStatus(1) = 2 or
+			NewBar or
+			( Calculation_Frequency = -1 and Price <> Last_Price ) or
+			( Calculation_Frequency > 0 and Price <> Last_Price and ComputerDateTime >= Next_Update_Time );
+
+
+If CalcNow then Begin
+
+	If Length > 1 then Begin
+		SumY = Price;
+		SumXY = Price * Length;
+		For value1 = 1 to Length-1 Begin
+			SumY = SumY + Price[value1];
+			SumXY = SumXY + Price[value1]*(Length-value1);
+		end;
+
+		LRSlope = (Length * SumXY - SumX * SumY ) / ( Length * SumX2 - SumXSqr);
+	end;
+
+Last_Price = Price;
+	Next_Update_Time = ComputerDateTime + ( Calculation_Frequency * 0.000011574074 );
+end;
+
+{Plot1( LRSlope, "TanLinReg6" ) ;}
+
+NewBar = BarStatus(1) = 2;
+
+
+
+
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+
+                                             
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+				
+Inputs:	Price19(Close),
+		Length19(19),
+		Displace19(0),
+		Calculation_Frequency19(-1);
+
+Vars:	LRSlope19(0),
+		SumX19(Length19*(Length19-1)*0.5+Length19),
+		SumY19(0),
+		SumXY19(0),
+		SumX219(Length19 * ( Length19 - 1 ) * ( 2 * Length19 - 1 ) / 6 + Length19 * Length19),
+		SumXSqr19(SumX19 * SumX19);
+
+Vars:	CalcNow19(False),
+		IntrabarPersist Last_Price19(0),
+		IntrabarPersist Next_Update_Time19(0), 
+		IntrabarPersist NewBar19(False);
+
+
+CalcNow19 = 	Calculation_Frequency19 = 0 or 
+			BarStatus(1) = 2 or
+			NewBar19 or
+			( Calculation_Frequency19 = -1 and Price19 <> Last_Price19 ) or
+			( Calculation_Frequency19 > 0 and Price19 <> Last_Price19 and ComputerDateTime >= Next_Update_Time19 );
+
+
+If CalcNow19 then Begin
+
+	If Length19 > 1 then Begin
+		SumY19 = Price19;
+		SumXY19 = Price19 * Length19;
+		For value2 = 1 to Length19-1 Begin
+			SumY19 = SumY19 + Price19[value2];
+			SumXY19 = SumXY19 + Price19[value2]*(Length19-value2);
+		end;
+
+		LRSlope19 = (Length19 * SumXY19 - SumX19 * SumY19 ) / ( Length19 * SumX219 - SumXSqr19);
+	end;
+
+	Last_Price19 = Price19;
+	Next_Update_Time19 = ComputerDateTime + ( Calculation_Frequency19 * 0.000011574074 );
+end;
+
+{Plot1( LRSlope19, "TanLinReg19" ) ;}
+
+NewBar19 = BarStatus(1) = 2;
+
+
+
+
+{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
+
+
+
+
+
+
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+
+
+
+if timefilter then 
+begin
+
+input:ProfitFactor(0.5), TicksSL(45);;
+variables: mt(0), ptticks(0), mtt(0);
+mt=absvalue(h[1]-l[1]);
+mtt=mt*PriceScale;
+mtt=mt/TickSize;
+ptticks=mtt*ProfitFactor;
+setprofittarget(ptticks*TickValue);
+SetStopLoss(TicksSL*TickValue);
+
+
+if Quotient1 crosses over 0 then
+sellshort("Short") next bar at Market ;
+if Quotient2 crosses under 0 then 
+buy("Buy") next bar at Market ;
+
+
+
+If  Close[0] > ema83AvgExp 
+	and Close[1] < ema83AvgExp
+	and LRSlope19[0] > 0.001 
+	and LRSlope[0] > 0.001
+	then 
+sellshort("ShortEma") Next Bar at open next bar limit;
+
+
+If  Close[0] < ema83AvgExp 
+	and Close[1] > ema83AvgExp
+	and LRSlope19[0] < -0.001 
+	and LRSlope[0] < -0.001
+	then
+buy ("BuyEma") Next Bar at open next bar limit;
+
+
+
+
+
+
+
+end;
+
+
