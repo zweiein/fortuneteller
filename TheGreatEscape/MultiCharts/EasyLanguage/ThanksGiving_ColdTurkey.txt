@@ -160,15 +160,6 @@ NewBar19 = BarStatus(1) = 2;
 
 
 
-{?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#?#}
-
-
-
-
-
-
-
-
 // ************  TimeOfDay Filter (TRUE when trading is allowed)************
 inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
 variables: timefilter(false);
@@ -196,12 +187,7 @@ profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
 if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
 
 
-if timefilter then begin
-	if TicksSL>0 then begin
-		//SetStopShare ;
-		//SetStopLoss(TicksSL*TickValue) ; 
-	end;
-	
+if timefilter then begin	
 	if (Enable_ProfitLossFilter=1 and profitlossfilter=false) then begin
 		if mp>0 then sell ("LossSell") 1 contracts next bar at market;
 		if mp<0 then buytocover ("LossCover") 1 contracts  next bar at market;
