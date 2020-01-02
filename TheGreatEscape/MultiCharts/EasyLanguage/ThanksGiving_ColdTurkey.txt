@@ -157,7 +157,7 @@ end;
 
 NewBar19 = BarStatus(1) = 2;
 
-
+inputs: NumContracts(1);
 
 
 // ************  TimeOfDay Filter (TRUE when trading is allowed)************
@@ -189,8 +189,8 @@ if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
 
 if timefilter then begin	
 	if (Enable_ProfitLossFilter=1 and profitlossfilter=false) then begin
-		if mp>0 then sell ("LossSell") 1 contracts next bar at market;
-		if mp<0 then buytocover ("LossCover") 1 contracts  next bar at market;
+		if mp>0 then sell ("LossSell") NumContracts contracts next bar at market;
+		if mp<0 then buytocover ("LossCover") NumContracts contracts  next bar at market;
 	end;
 end;
 
@@ -212,9 +212,9 @@ SetStopLoss(TicksSL*TickValue);
 
 
 if Quotient1 crosses over 0 then
-sellshort("Short") next bar at Market ;
+sellshort("ShortM") NumContracts contracts next bar at Market ;
 if Quotient2 crosses under 0 then 
-buy("Buy") next bar at Market ;
+buy("BuyM") NumContracts contracts next bar at Market ;
 
 
 
@@ -223,7 +223,7 @@ If  Close[0] > ema83AvgExp
 	and LRSlope19[0] > 0.001 
 	and LRSlope[0] > 0.001
 	then 
-sellshort("ShortEma") Next Bar at open next bar limit;
+sellshort("ShortEma") NumContracts contracts Next Bar at market;// open next bar limit;
 
 
 If  Close[0] < ema83AvgExp 
@@ -231,7 +231,7 @@ If  Close[0] < ema83AvgExp
 	and LRSlope19[0] < -0.001 
 	and LRSlope[0] < -0.001
 	then
-buy ("BuyEma") Next Bar at open next bar limit;
+buy ("BuyEma") NumContracts contracts Next Bar at market;//open next bar limit;
 
 
 
@@ -239,10 +239,10 @@ buy ("BuyEma") Next Bar at open next bar limit;
 input: StopBars(1);
 if OpenEntryProfit<0 then begin
 if mp<0 then begin
-	if barssinceentry>=StopBars then buytocover ("BackoffShort") next bar at market;
+	if barssinceentry>=StopBars then buytocover ("BackoffShort") NumContracts contracts next bar at market;
 end 
 else if mp>0 then begin
-	if barssinceentry>=StopBars then sell ("BackoffLong") next bar at market;
+	if barssinceentry>=StopBars then sell ("BackoffLong") NumContracts contracts next bar at market;
 end;
 end;
 
