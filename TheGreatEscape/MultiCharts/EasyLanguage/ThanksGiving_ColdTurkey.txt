@@ -9,7 +9,7 @@ alpha1( 0 ), HP( 0 ), a1( 0 ), b1( 0 ),
 c1( 0 ), c2( 0 ), c3( 0 ), Filt( 0 ), Peak(0), 
 X( 0 ), Quotient1( 0 ), Quotient2( 0 ) ;
 //Highpass filter cyclic components
-//whose periods are shorter than 
+//whose periods are shorter than a
 //100 bars
 alpha1 = ( Cosine( .707 * 360 / 100 )
 + Sine ( .707 * 360 / 100 ) - 1 ) /
