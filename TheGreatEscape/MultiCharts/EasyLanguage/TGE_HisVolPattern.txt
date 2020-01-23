@@ -1,0 +1,70 @@
+[IntrabarOrderGeneration = false]
+inputs:  TicksSL( 40 ), DirectionPointer(1) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Profit(4000),Daily_Max_Loss(300);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+
+
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue) ; 
+
+input:ProfitFactor(0.5);
+variables: mt(0), ptticks(0), mtt(0);
+mt=absvalue(h[1]-l[1]);
+mtt=mt*PriceScale;
+mtt=mt/TickSize;
+ptticks=mtt*ProfitFactor;
+setprofittarget(ptticks*TickValue);
+
+
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+
+Condition5= timefilter and  profitlossfilter;
+
+if Condition5 then begin
+
+input: rang(4), s(6), ll(100);
+Vars: HVRatio(0), NR4(False), InBar(False);
+HVRatio=(HisVol(s,365)/HisVol(ll,365))*100;
+NR4=Range=Lowest(Range,rang); 
+InBar=H<H[1] and L>L[1];
+If HVRatio <= 50 and (NR4 or InBar) then begin
+sellshort next bar at  at High + (1*MinMove points) stop;
+buy next bar at Low - (1*MinMove points) stop;
+end;
+
+
+end;
+ 

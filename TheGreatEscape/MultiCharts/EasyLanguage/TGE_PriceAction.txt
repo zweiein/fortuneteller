@@ -1,0 +1,72 @@
+[IntrabarOrderGeneration = false]
+inputs:  TicksSL( 40 ), DirectionPointer(1) ;
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Profit(4000),Daily_Max_Loss(300);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+
+
+if timefilter then begin
+	SetStopShare ;
+	SetStopLoss(TicksSL*TickValue) ; 
+
+input:ProfitFactor(0.5);
+variables: mt(0), ptticks(0), mtt(0);
+mt=absvalue(h[1]-l[1]);
+mtt=mt*PriceScale;
+mtt=mt/TickSize;
+ptticks=mtt*ProfitFactor;
+setprofittarget(ptticks*TickValue);
+
+
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+
+Condition5= timefilter and  profitlossfilter;
+Inputs: K(2),
+Smooth(12),K1(4), Smooth1(12), RegLen( 4 ), AFStep(0.0004), AFLimit(0.4) ;
+
+vars:V1(0),UP(0),DN(0),UP1(0), DN1(0);
+
+//v1=ParabolicValue(AFStep, AFLimit) data1;
+if Condition5 then begin
+	UP1=PriceActionRenko(1,K1,Smooth1) data1;
+	DN1=PriceActionRenko(2,k1,smooth1) data1;
+
+	if l<(DN1+1 points) and c >DN1 and c>o then Buy next bar at market;
+	//if marketposition=-1 then buy next bar at UP1 + 10 points stop;
+	//if DN<UP1 then Sell next bar at market;
+
+	if h>(UP1 -1 points) and c<UP1 and c<o then Sell Short next bar at market;
+	//if marketposition=1 then sell short next bar at DN1-10 points stop;
+	//if UP> DN1 then buytocover next bar at market;
+end;
