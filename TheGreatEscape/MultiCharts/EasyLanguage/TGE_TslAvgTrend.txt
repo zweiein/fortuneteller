@@ -1,0 +1,103 @@
+[IntrabarOrderGeneration = false]
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_ExitPosFrom(1555), TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false), exitfilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+		
+	if  Time>=TimeOfDay_ExitPosFrom and Time <=TimeOfDay_NonTradingHoursFrom then
+		exitfilter=true
+	else 
+		exitfilter=false;
+end;
+if Enable_Timefilter= 0 then timefilter=true;
+
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Profit(4000),Daily_Max_Loss(500);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+
+if timefilter then begin	
+	if (Enable_ProfitLossFilter=1 and profitlossfilter=false)  or exitfilter then begin
+		if marketposition>0 then sell ("LossSell") 1 contracts next bar at market;
+		if marketposition<0 then buytocover ("LossCover") 1 contracts  next bar at market;
+	end;
+	
+end;
+
+Condition5= timefilter and  profitlossfilter and exitfilter=false;
+
+
+if Condition5 then 
+begin
+
+input:ProfitFactor(0.5), TicksSL(45),BreakEvenTicks(5);;
+variables: mt(0), ptticks(0), mtt(0);
+mt=absvalue(h[1]-l[1]);
+mtt=mt*PriceScale;
+mtt=mt/TickSize;
+ptticks=mtt*ProfitFactor;
+setprofittarget(ptticks*TickValue);
+SetStopLoss(TicksSL*TickValue);
+if BreakEvenTicks>0 then SetBreakEven(BreakEvenTicks*TickValue);
+
+
+vars : ttrend(0);
+ttrend=0;
+if (c>c[1] and c[1]>c[2]) or (c<c[1] and c[1]<c[2]) then ttrend=1;
+
+Inputs:  Length( 10 ), MomLen(5), Price(Close);
+Vars: StandDev(0), ZScore(0), Avg(0), AvgZScore(0), AvgZMom(0);
+
+StandDev = StandardDev(Price, Length, 1);//Standard Deviation of Security
+Avg = Xaverage(Price, Length);//Avg Closing Price
+If StandDev <> 0 then 
+	ZScore = (Price - Avg) / StandDev//Z-Score Calculation
+Else
+	ZScore = 0;
+AvgZScore = XAverage(ZScore,Length);//Average Z-Score
+AvgZMom = Momentum(AvgZScore, MomLen);//Momentum of Average Z-Score 
+
+if ttrend=1 then begin
+
+//Strategy Rules
+input: Reverse(1);
+If AvgZMom > 0 and AvgZMom[1]<=0  then begin
+  if reverse=1 then 
+    buy ("BuyRev") 1 contracts next bar at market
+  else
+   sellshort("SellOrd") 1 contracts next bar at market;
+
+end;
+
+If AvgZMom < 0 and AvgZMom[1]>=0   then begin
+
+if reverse=1 then sellshort("SellRev") 1 contracts next bar at market
+else
+    buy ("BuyOrd")1  contracts next bar at market;
+
+
+end;
+
+end;
+end;
+
+
