@@ -1,0 +1,140 @@
+[IntrabarOrderGeneration = false]
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Loss(1000);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+if timefilter then begin
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+
+
+if Enable_Timefilter= 0 then timefilter=true;
+input:  ProfitFactor(1), TicksBE(25), TicksSL(65);
+variables: mt(0), ptticks(0), mtt(0);
+mt=absvalue(h[1]-l[1]);
+
+mtt=mt*PriceScale;
+mtt=mt/TickSize;
+ptticks=mtt*ProfitFactor;
+
+if timefilter then begin
+	SetStopShare ;
+	setprofittarget(ptticks*TickValue);
+	if TicksBE>0 then SetBreakeven( TicksBE*TickValue) ;
+	if TicksSL>0 then SetStopLoss(TicksSL*TickValue) ; 
+end;
+
+Condition5= timefilter and  profitlossfilter;
+if Condition5 then begin
+
+input: Length2( 16 ) ;
+ Buytocover ( "ChBrkLE" ) next bar at HighestFC( H, Length2 ) + 1 point stop ;
+
+Sell ( "ChBrkSE" ) next bar at LowestFC( L, Length2 ) - 1 point stop ;
+
+
+
+		Inputs: Criteria(C Cross Over Average(C, 6) Or C Cross Under Average(C, 6)), Length(40);
+
+		If CriteriaCounter(Criteria, Length) > 10 Then Begin
+			If C Cross Over Average(C, 10) Then
+				Buy Tomorrow at Open;
+			If C Cross Under Average(C, 10) Then
+				SellShort Tomorrow at Open;
+		End;
+
+		If C Cross Under Average(C, 10) Then
+			Sell  Tomorrow at Open;
+		If C Cross Over Average(C, 10) Then
+			buyToCover Tomorrow at Open; 
+			
+			
+			
+		inputs: price(Close), jthmaLength( 25 ), upColour(Blue), downColour(Red);
+		variables: Avg(0), colour(0);
+
+		Avg = hma( price, jthmaLength ) ;
+
+		if Avg > Avg[1] then colour = upColour;
+		if Avg < Avg[1] then colour = downColour;
+
+		{buy sell Criteria}
+
+		if colour[1] <> colour then
+		if colour = upColour then
+		Buy ( "jup" ) next bar at market ;
+
+		if colour[1] <> colour then
+		if colour = downColour then
+		sell short( "jdn" ) next bar at market ; 
+		
+		
+		
+Inputs:
+	Period1(31),
+	Period2(64);
+
+Vars:
+	a1(0),
+	a2(0),
+	PB(0),
+	count(0),
+	RMS(0);
+	
+a1 = 5 / Period1;
+a2 = 5 / Period2;
+
+PB = (a1 - a2)*Close + (a2*(1 - a1) - a1*(1 - a2))*Close[1] + ((1 - a1) + (1 - a2))*PB[1] - (1 - a1)*(1 - a2)*PB[2];
+
+RMS = 0;
+For count = 0 to 49 Begin
+	RMS = RMS + PB[count]*PB[count];
+End;
+
+RMS = SquareRoot(RMS / 50);
+
+condition1 = CurrentBar > 1 and PB>RMS ;
+if condition1 then                                                                    
+	sellshort ( "BBandSE" ) 1  contracts next bar at market;
+
+//if mp>0 and pb>0 then sell next bar at market;
+//if mp<0 and pb<0 then buytocover next bar at market;
+
+condition2 = CurrentBar > 1 and PB<-RMS ;
+if condition2 then                                                                    
+	buy( "BBandLE" ) 1  contracts next bar at market ;
+
+
+end;
+
+
+

@@ -1,0 +1,93 @@
+[IntrabarOrderGeneration = false]
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Loss(500);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+if timefilter then begin
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+
+
+if Enable_Timefilter= 0 then timefilter=true;
+input:  ProfitFactor(0.5), TicksBE(25), TicksSL(65);
+variables: mt(0), ptticks(0), mtt(0);
+mt=absvalue(h[1]-l[1]);
+
+mtt=mt*PriceScale;
+mtt=mt/TickSize;
+ptticks=mtt*ProfitFactor;
+
+if timefilter then begin
+	SetStopShare ;
+	setprofittarget(ptticks*TickValue);
+	if TicksBE>0 then SetBreakeven( TicksBE*TickValue) ;
+	if TicksSL>0 then SetStopLoss(TicksSL*TickValue) ; 
+end;
+
+Condition5= timefilter and  profitlossfilter;
+if Condition5 then begin
+
+input: ExitOnBar(-1);
+if ExitOnBar>=0 and barssinceentry>=ExitOnBar then begin
+	if mp>0 then sell("ExitL") next bar at market;
+	if mp<0 then buytocover("ExitS") next bar at market;
+end;   
+
+
+Input:
+BreakOutLookback(4), 
+BreakOutBars(4);
+
+If Breakout_Range2(h, BreakOutLookback) <> 0 then 
+sellshort("BreakS") next baR AT MArket	;
+If BarsSinceEntry >= BreakOutBars and mp>0 then sell next bar at market;
+
+If Breakout_Rangel2(l, BreakOutLookback) <> 0 then 
+buy("BreakL")  next bar at market;
+if barssinceentry>= BreakOutBars and mp<0 then buytocover next bar at market;
+
+
+Input: RegLen(5);
+variables:slope(0);
+slope=AwesomeSlope(Reglen,0);
+if slope>0 then begin
+ 	Buy("SlopeL") next bar at market;
+end;
+if slope<0 then begin
+ 	 SellShort("SlopeS") next bar at market;
+end;
+
+
+end;
+
+
+
