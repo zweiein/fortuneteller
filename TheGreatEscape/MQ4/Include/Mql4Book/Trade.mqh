@@ -73,7 +73,8 @@ class CTrade
       bool CloseAllSellOrders();
       bool CloseAllMarketOrders();
       bool CloseExpiredOrders(int BarNb);
-      
+      bool CloseExpiredPendingOrders(int BarNb); 
+           
       bool DeletePendingOrder(int pTicket, color pArrow = clrRed);
       bool DeleteAllBuyStopOrders();
       bool DeleteAllSellStopOrders();
@@ -422,6 +423,41 @@ bool CTrade::CloseMultipleOrders(CLOSE_MARKET_TYPE pCloseType)
       if(closeOrder == true && orderMagicNumber == _magicNumber)
       {
          result = CloseMarketOrder(orderTicket,orderVolume);
+         
+         if(result == false)
+         {
+            Print("Close multiple orders: ",OrderTypeToString(orderType)," #",orderTicket," not closed");
+            error = true;
+         }
+         else order--;
+      }
+   }
+   
+   return(error);
+}
+
+bool CTrade::CloseExpiredPendingOrders(int BarNb){
+   bool error = false;
+   bool closeOrder = false;
+   
+   // Loop through open order pool from oldest to newest
+   for(int order = 0; order <= OrdersTotal() - 1; order++)
+   {
+      // Select order
+      bool result = OrderSelect(order,SELECT_BY_POS);
+      
+      int orderType = OrderType();
+      int orderMagicNumber = OrderMagicNumber();
+      int orderTicket = OrderTicket();
+      double orderVolume = OrderLots();
+      int barCount=iBarShift(OrderSymbol(),0,OrderOpenTime());
+      Print("Order open ", barCount);
+      if (barCount>=BarNb) closeOrder=true; else closeOrder=false;
+      
+      // Close order if pCloseType and magic number match currently selected order
+      if(closeOrder == true && orderMagicNumber == _magicNumber)
+      {
+         result = DeletePendingOrder(orderTicket);
          
          if(result == false)
          {
