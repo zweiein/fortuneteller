@@ -1,0 +1,116 @@
+[IntrabarOrderGeneration = false]
+Vars: TickSize( MinMove / PriceScale ),TickValue ((MinMove / PriceScale) * BigPointValue);
+
+// ************  TimeOfDay Filter (TRUE when trading is allowed)************
+inputs: Enable_Timefilter(1),TimeOfDay_NonTradingHoursFrom(1655),TimeOfDay_NonTradingHoursTo(1800);
+variables: timefilter(false);
+if Enable_Timefilter= 1 then begin	
+	if  Time>=TimeOfDay_NonTradingHoursFrom and Time <=TimeOfDay_NonTradingHoursTo then
+		timefilter=false
+	else 
+		timefilter=true;
+end;
+
+
+// **************   Max loss/profit filter **********************
+inputs:
+Enable_ProfitLossFilter(1),Daily_Max_Loss(500);
+vars:
+profitlossfilter(true),
+todaynet(0),
+yesterdaynet(0);
+if date <> date[1] then begin
+	yesterdaynet = NetProfit;
+end;
+//if MarketPosition = 0 then begin
+	todaynet = NetProfit - yesterdaynet;
+	
+//nd;
+profitlossfilter= -Daily_Max_Loss< todaynet ;//and todaynet < Daily_Max_Profit;
+if Enable_ProfitLossFilter=0 then profitlossfilter=true;//Always allow
+
+if timefilter then begin
+	if Enable_ProfitLossFilter=1 and profitlossfilter=false then begin
+		if mp>0 then sell next bar at market;
+		if mp<0 then buytocover next bar at market;
+	end;	
+end;
+
+
+
+if Enable_Timefilter= 0 then timefilter=true;
+input:  ProfitFactor(0.5), TicksBE(0), TicksSL(0);
+variables: mt(0), ptticks(0), mtt(0);
+mt=absvalue(h[1]-l[1]);
+
+mtt=mt*PriceScale;
+mtt=mt/TickSize;
+ptticks=mtt*ProfitFactor;
+
+if timefilter then begin
+	SetStopShare ;
+	if ProfitFactor>0 then  setprofittarget(ptticks*TickValue);
+	if TicksBE>0 then SetBreakeven( TicksBE*TickValue) ;
+	if TicksSL>0 then SetStopLoss(TicksSL*TickValue) ; 
+end;
+
+input: UseChannelExit( 1 ), Length( 10 ) ;
+
+
+
+inputs:
+LPPeriod( 30 ), K1( .85 ), K2( .4 ), UseShorting(1) ;
+variables:
+alpha1( 0 ), HP( 0 ), a1( 0 ), b1( 0 ), 
+c1( 0 ), c2( 0 ), c3( 0 ), Filt( 0 ), Peak(0), 
+X( 0 ), Quotient1( 0 ), Quotient2( 0 ) ;
+//Highpass filter cyclic components
+//whose periods are shorter than 
+//100 bars
+alpha1 = ( Cosine( .707 * 360 / 100 )
++ Sine ( .707 * 360 / 100 ) - 1 ) /
+Cosine( .707 * 360 / 100 ) ;
+HP = ( 1 - alpha1 / 2 )*( 1 - alpha1 /
+2 )*( Close - 2 * Close[1] + Close[2] )
++ 2 * ( 1 - alpha1 ) * HP[1] 
+- ( 1 - alpha1 ) * ( 1 - alpha1 ) * HP[2] ;
+//SuperSmoother Filter
+a1 = expvalue( -1.414 * 3.14159 / LPPeriod ) ;
+b1 = 2 * a1 * Cosine( 1.414*180 / LPPeriod ) ;
+c2 = b1 ;
+c3 = -a1 * a1 ;
+c1 = 1 - c2 - c3 ;
+Filt = c1 * ( HP + HP[1] ) / 2 + c2 * Filt[1]
++ c3 * Filt[2] ;
+//Fast Attack - Slow Decay Algorithm
+Peak = .991 * Peak[1] ;
+If AbsValue( Filt ) > Peak then 
+Peak = AbsValue( Filt ) ;
+//Normalized Roofing Filter
+if Peak <> 0 then 
+X = Filt / Peak ;
+Quotient1 = ( X + K1 ) / ( K1 * X + 1 ) ;
+Quotient2 = ( X + K2 ) / ( K2 * X + 1 ) ;
+
+
+
+Condition5= timefilter and  profitlossfilter;
+if Condition5 then begin
+
+	if Quotient1 crosses over 0 then
+	Buy ( "EhlersB" )  next bar at Market ;
+	if Quotient2 crosses under 0 then 
+	begin
+		if UseShorting=1 then Sellshort ( "EhlersB" ) next bar at Market else Sell ( "EhlersX") next bar at market; 
+	end;
+	
+	if UseChannelExit=1 then
+	begin
+		Buytocover ( "ChBrkLE" ) next bar at HighestFC( H, Length ) + 1 point stop ;
+		Sell ( "ChBrkSE" ) next bar at LowestFC( L, Length ) - 1 point stop ;	
+	end;
+
+end;
+
+
+
