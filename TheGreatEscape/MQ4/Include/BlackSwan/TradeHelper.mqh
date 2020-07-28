@@ -55,16 +55,49 @@ int GetSlippage(string Currency, int SlippagePips){
    return(CalcSlippage);
 }
 
-int GetOpenPos(string Symb, int OType, int MagicNumber){
+double GetOpenPos(string Symb, int OType, int MagicNumber){
    double opPos=0;
    // Loop through open order pool from oldest to newest
+
    for(int order = 0; order <= OrdersTotal() - 1; order++)
    {
       // Select order
       bool result = OrderSelect(order,SELECT_BY_POS);
       if(OrderSymbol() == Symb && OrderMagicNumber() == MagicNumber && OrderType()==OType){
-         opPos+=OrderLots();
+         opPos+=MathAbs(OrderLots());
       }
    }
-   return opPos;
+   return (opPos);
+}
+
+
+int CheckInitialStop(string Symb, int MagicNumber, int InitialStopPoints){
+ 
+   for(int order = 0; order <= OrdersTotal() - 1; order++)
+   {
+      // Select order
+      bool result = OrderSelect(order,SELECT_BY_POS);
+      if(OrderSymbol() == Symb && OrderMagicNumber() == MagicNumber){
+        if (OrderStopLoss()==0){
+         ModifyStopsByPoints(OrderTicket(), InitialStopPoints);
+        }
+      }
+   }
+   return (1);
+}
+
+
+int CheckInitialProf(string Symb, int MagicNumber, int InitialProfPoints){
+ 
+   for(int order = 0; order <= OrdersTotal() - 1; order++)
+   {
+      // Select order
+      bool result = OrderSelect(order,SELECT_BY_POS);
+      if(OrderSymbol() == Symb && OrderMagicNumber() == MagicNumber){
+        if (OrderTakeProfit()==0){
+         ModifyStopsByPoints(OrderTicket(), 0, InitialProfPoints);
+        }
+      }
+   }
+   return (1);
 }

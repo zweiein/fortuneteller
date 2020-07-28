@@ -28,12 +28,16 @@ sinput string MoneyManagement;    // MonMan Settings
 input int BarsMaxOpenPending = 10;
 input int BarsMaxOpenOrders = 10;
 input double MaxOpenPos=2.0;
+
+input int InitialStopPoints=500;
+input int InitialProfPoints=200;
+
 sinput string TrailingStopSettings;   	// Trailing Stop
 input bool UseTrailingStop = true;
 input int TrailingStop = 200;
 input int MinProfit = 100;
 input int Step = 10;
-
+ 
 double UsePoint=0;
 double BuyPos=0;
 double SellPos=0;
@@ -76,31 +80,44 @@ void OnTick()
    }
    if(newBar == true)
    {
-      Print("BuyPos=", BuyPos, " SellPos=", SellPos);
+
+     // Print("BuyPos=", BuyPos, " SellPos=", SellPos);
       Trade.CloseExpiredOrders(BarsMaxOpenOrders);
-      Trade.CloseExpiredPendingOrders(BarsMaxOpenPending);      
+      Trade.CloseExpiredPendingOrders(BarsMaxOpenPending);     
+      BuyPos=GetOpenPos(Symbol(),OP_BUY,MagicNumber);
+      SellPos=GetOpenPos(Symbol(),OP_SELL,MagicNumber); 
+      
+      
       double MinStopLevel = MarketInfo(Symbol(), MODE_STOPLEVEL) + MarketInfo(Symbol(), MODE_SPREAD);
       double h=High[1];
       double l=Low[1];
       double m=(h+l)/2;
-      Print("Low, High and Mid Price ", h, ",", l, " => ", m);
       double st=(h-l)/OrderSteps;
       
       int trend= CalcRegressionTrend( RegressionStart,  RegressionStop,  RegressionCount);
-      if(trend==1  )
-      {
-         for (int v=1;v<=OrderSteps;v++){
-            int ticket=Trade.OpenBuyLimitOrder(Symbol(),LotSize,NormalizeDouble(m-st*v,4),0,0);
-         }
-      } else if(trend==-1  )
-      {
-         for (int v=1;v<=OrderSteps;v++){
-            int ticket=Trade.OpenSellLimitOrder(Symbol(),LotSize,NormalizeDouble(m-st*v,4),0,0);
+      
+      if (MaxOpenPos==0 || (BuyPos<MaxOpenPos && SellPos<MaxOpenPos)){
+         if(trend==1  )
+         {
+            for (int v=1;v<=OrderSteps;v++){
+               int ticket=Trade.OpenBuyLimitOrder(Symbol(),LotSize,NormalizeDouble(m-st*v,4),0,0);
+            }
+         } else if(trend==-1  )
+         {
+            for (int v=1;v<=OrderSteps;v++){
+               int ticket=Trade.OpenSellLimitOrder(Symbol(),LotSize,NormalizeDouble(m-st*v,4),0,0);
+            }
          }
       }
+      
    }else{
-      BuyPos=GetOpenPos(_Symbol,OP_BUY,MagicNumber);
-      SellPos=GetOpenPos(_Symbol,OP_SELL,MagicNumber);
+      BuyPos=GetOpenPos(Symbol(),OP_BUY,MagicNumber);
+      SellPos=GetOpenPos(Symbol(),OP_SELL,MagicNumber);
+      if (MaxOpenPos>0 && (BuyPos>=MaxOpenPos || SellPos>=MaxOpenPos)){
+         Trade.DeleteAllPendingOrders();
+       }
+      if (InitialStopPoints>0)CheckInitialStop(Symbol(), MagicNumber, InitialStopPoints);
+      if (InitialProfPoints>0)CheckInitialProf(Symbol(), MagicNumber, InitialProfPoints);
    }
    
    

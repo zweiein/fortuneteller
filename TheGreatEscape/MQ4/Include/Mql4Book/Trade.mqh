@@ -788,7 +788,7 @@ bool ModifyStopsByPoints(int pTicket, int pStopPoints, int pProfitPoints = 0, in
    double stopLoss = 0;
    double takeProfit = 0;
    
-   if(orderType == OP_BUY || orderType == OP_BUYLIMIT)
+   if(orderType == OP_BUY )
    {
       stopLoss = BuyStopLoss(orderSymbol,pStopPoints,orderOpenPrice);
       if(stopLoss != 0) stopLoss = AdjustBelowStopLevel(orderSymbol,stopLoss,pMinPoints);
@@ -796,7 +796,7 @@ bool ModifyStopsByPoints(int pTicket, int pStopPoints, int pProfitPoints = 0, in
       takeProfit = BuyTakeProfit(orderSymbol,pProfitPoints,orderOpenPrice);
       if(takeProfit != 0) takeProfit = AdjustAboveStopLevel(orderSymbol,takeProfit,pMinPoints);
    }
-   else if(orderType == OP_SELL || orderType == OP_SELLLIMIT)
+   else if(orderType == OP_SELL )
    {
       stopLoss = SellStopLoss(orderSymbol,pStopPoints,orderOpenPrice);
       if(stopLoss != 0) stopLoss = AdjustAboveStopLevel(orderSymbol,stopLoss,pMinPoints);
@@ -804,8 +804,8 @@ bool ModifyStopsByPoints(int pTicket, int pStopPoints, int pProfitPoints = 0, in
       takeProfit = SellTakeProfit(orderSymbol,pProfitPoints,orderOpenPrice);
       if(takeProfit != 0) takeProfit = AdjustBelowStopLevel(orderSymbol,takeProfit,pMinPoints);
    }
-   
-   result = ModifyOrder(pTicket,0,stopLoss,takeProfit);
+   if (orderType == OP_SELL || orderType == OP_BUY)
+      result = ModifyOrder(pTicket,0,stopLoss,takeProfit);
    return(result);
 }
 
@@ -828,18 +828,18 @@ bool ModifyStopsByPrice(int pTicket, double pStopPrice, double pProfitPrice = 0,
    double stopLoss = 0;
    double takeProfit = 0;
    
-   if(orderType == OP_BUY || orderType == OP_BUYLIMIT)
+   if(orderType == OP_BUY)
    {
       if(pStopPrice != 0) stopLoss = AdjustBelowStopLevel(orderSymbol,pStopPrice,pMinPoints);
       if(pProfitPrice != 0) takeProfit = AdjustAboveStopLevel(orderSymbol,pProfitPrice,pMinPoints);
    }
-   else if(orderType == OP_SELL || orderType == OP_SELLLIMIT)
+   else if(orderType == OP_SELL)
    {
       if(pStopPrice != 0) stopLoss = AdjustAboveStopLevel(orderSymbol,pStopPrice,pMinPoints);
       if(pProfitPrice != 0) takeProfit = AdjustBelowStopLevel(orderSymbol,pProfitPrice,pMinPoints);
    }
-   
-   result = ModifyOrder(pTicket,0,stopLoss,takeProfit);
+   if (orderType == OP_SELL || orderType == OP_BUY)
+      result = ModifyOrder(pTicket,0,stopLoss,takeProfit);
    return(result);
 }
 
