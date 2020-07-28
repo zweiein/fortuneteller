@@ -71,33 +71,19 @@ double GetOpenPos(string Symb, int OType, int MagicNumber){
 }
 
 
-int CheckInitialStop(string Symb, int MagicNumber, int InitialStopPoints){
+
+
+bool CheckInitialProfLoss(string Symb, int MagicNumber, int InitialProfPoints,  int InitialSLPoints){
  
    for(int order = 0; order <= OrdersTotal() - 1; order++)
    {
       // Select order
       bool result = OrderSelect(order,SELECT_BY_POS);
       if(OrderSymbol() == Symb && OrderMagicNumber() == MagicNumber){
-        if (OrderStopLoss()==0){
-         ModifyStopsByPoints(OrderTicket(), InitialStopPoints);
+        if (OrderStopLoss()==0 && OrderTakeProfit()==0){
+         ModifyStopsByPoints(OrderTicket(), InitialSLPoints, InitialProfPoints);
         }
       }
    }
-   return (1);
-}
-
-
-int CheckInitialProf(string Symb, int MagicNumber, int InitialProfPoints){
- 
-   for(int order = 0; order <= OrdersTotal() - 1; order++)
-   {
-      // Select order
-      bool result = OrderSelect(order,SELECT_BY_POS);
-      if(OrderSymbol() == Symb && OrderMagicNumber() == MagicNumber){
-        if (OrderTakeProfit()==0){
-         ModifyStopsByPoints(OrderTicket(), 0, InitialProfPoints);
-        }
-      }
-   }
-   return (1);
+   return (true);
 }

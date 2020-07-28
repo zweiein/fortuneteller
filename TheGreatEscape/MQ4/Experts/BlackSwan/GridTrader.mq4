@@ -127,8 +127,8 @@ void OnTick()
       if (MaxOpenPos>0 && (BuyPos>=MaxOpenPos || SellPos>=MaxOpenPos)){
          Trade.DeleteAllPendingOrders();
        }
-      if (InitialStopPoints>0)CheckInitialStop(Symbol(), MagicNumber, InitialStopPoints);
-      if (InitialProfPoints>0)CheckInitialProf(Symbol(), MagicNumber, InitialProfPoints);
+      if (InitialStopPoints>0 || InitialProfPoints>0)
+         CheckInitialProfLoss(Symbol(), MagicNumber, InitialProfPoints, InitialStopPoints);
    }
    
    
