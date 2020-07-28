@@ -19,10 +19,20 @@ input double LotSize=0.1;
 input bool TradeOnBarOpen = true;
 input bool AutomaticClosing=false;
 
+
+enum ENUM_GRIDTYPE
+ { 
+  DEFAULT= 1 , 
+  TIGHT= 2 
+ };
+input ENUM_GRIDTYPE GridType=DEFAULT;
+
+
 sinput string TrendSettings;    // Trend Settings
 input int RegressionCount = 14;
 input int RegressionStart=0;
 input int  RegressionStop=5;
+input bool CounterTrend=false;
 
 sinput string MoneyManagement;    // MonMan Settings
 input int BarsMaxOpenPending = 10;
@@ -93,16 +103,17 @@ void OnTick()
       double l=Low[1];
       double m=(h+l)/2;
       double st=(h-l)/OrderSteps;
+      if (GridType==TIGHT) st=(m-l)/OrderSteps;
       
       int trend= CalcRegressionTrend( RegressionStart,  RegressionStop,  RegressionCount);
       
       if (MaxOpenPos==0 || (BuyPos<MaxOpenPos && SellPos<MaxOpenPos)){
-         if(trend==1  )
+         if((CounterTrend==false && trend==1) || (CounterTrend && trend==-1) )
          {
             for (int v=1;v<=OrderSteps;v++){
                int ticket=Trade.OpenBuyLimitOrder(Symbol(),LotSize,NormalizeDouble(m-st*v,4),0,0);
             }
-         } else if(trend==-1  )
+         } else if((CounterTrend==false && trend==-1) || (CounterTrend && trend==1) )
          {
             for (int v=1;v<=OrderSteps;v++){
                int ticket=Trade.OpenSellLimitOrder(Symbol(),LotSize,NormalizeDouble(m-st*v,4),0,0);
