@@ -110,13 +110,17 @@ void OnTick()
       if (MaxOpenPos==0 || (BuyPos<MaxOpenPos && SellPos<MaxOpenPos)){
          if((CounterTrend==false && trend==1) || (CounterTrend && trend==-1) )
          {
-            for (int v=1;v<=OrderSteps;v++){
-               int ticket=Trade.OpenBuyLimitOrder(Symbol(),LotSize,NormalizeDouble(m-st*v,4),0,0);
+            for (int v=1;v<=OrderSteps;v++){ 
+               double inc=NormalizeDouble(st*v,Digits);
+               double lim=Bid-inc;
+               int ticket=Trade.OpenBuyLimitOrder(Symbol(),LotSize,NormalizeDouble(lim,Digits),0,0);
             }
          } else if((CounterTrend==false && trend==-1) || (CounterTrend && trend==1) )
          {
             for (int v=1;v<=OrderSteps;v++){
-               int ticket=Trade.OpenSellLimitOrder(Symbol(),LotSize,NormalizeDouble(m-st*v,4),0,0);
+               double inc=NormalizeDouble(st*v,Digits);
+               double lim=Ask+inc;            
+               int ticket=Trade.OpenSellLimitOrder(Symbol(),LotSize,NormalizeDouble(lim,Digits),0,0);
             }
          }
       }
