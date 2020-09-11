@@ -53,6 +53,7 @@ extern int    BackPeriod  =1000;
 extern int    ATRPeriod  =3;
 extern double Factor=3;
 extern bool   TypicalPrice=false;
+extern bool TrailStopInRealTime=false;
 
 double UsePoint=0;
 double BuyPos=0;
@@ -129,9 +130,7 @@ void OnTick()
       newBar = NewBar.CheckNewBar(_Symbol,_Period);
       barShift = 1;
    }
-   
-   
-   if(newBar == true) {
+   if(newBar == true || TrailStopInRealTime==true) {
       // Calc ATR levels used by Trailing stop
       if (TypicalPrice) PriceLvl=(High[0] + Low[0] + Close[0])/3;
       else PriceLvl=Close[0];
@@ -180,6 +179,8 @@ void OnTick()
             LvlUp=0;
          }
       }
+   }
+   if(newBar == true) {
       BuyPos=GetOpenPos(Symbol(),OP_BUY,MagicNumber);
       SellPos=GetOpenPos(Symbol(),OP_SELL,MagicNumber);
       int trend=0;//
@@ -207,8 +208,9 @@ void OnTick()
          else  Trade.OpenSellOrder(Symbol(), LotSize);
          // }
       }
-      
-      //Trailing stop loss executed
+   }
+//Trailing stop loss executed
+   if(newBar == true || TrailStopInRealTime==true) {
       for(int order = 0; order <= OrdersTotal() - 1; order++) {
          int res=OrderSelect(order,SELECT_BY_POS);//, MODE_TRADES);
          if(!res)
